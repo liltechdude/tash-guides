@@ -475,5 +475,5 @@ Locations come from QuestieDB. If the database is wrong, the fix belongs there, 
 ## Credits
 
 - Quest, NPC, object and item data: **QuestieDB** and the many contributors to the Questie database.
-- Guide style inspired by Zygor Guides and Questie. TashGuides is an independent project and is not affiliated with or endorsed by Blizzard Entertainment, Zygor, or the Questie project.
+- TashGuides is an independent project and is not affiliated with or endorsed by Blizzard Entertainment, or the Questie project.
 - Bug reports and guide contributions are welcome: open an issue or pull request on the [GitHub repository](https://github.com/liltechdude/tash-guides).
