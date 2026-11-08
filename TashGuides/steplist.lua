@@ -108,7 +108,7 @@ local function rowTooltip(r)
 end
 
 local function onRowClick(r, button)
-    if r.history then return end
+    if r.history or not r.si then return end
     if r.dynamic then
         if (button == "RightButton" or IsShiftKeyDown()) and Guide.Ordered() then
             TG.Smart.Promote(r.si)
@@ -252,18 +252,43 @@ end
 -- Rendering
 -- ---------------------------------------------------------------------------
 
+-- Long generated guides (hundreds of steps) list the recent steps and the next stretch only.
+local PAST_CAP, FUTURE_CAP = 12, 60
+
 local function renderFixed(g, steps)
     local y, currentY = 0, nil
     local done, total = Guide.Progress()
     local cursor, view = Guide.cursor, Guide.view
     local section
+    local status, pastCount, futureCount = {}, 0, 0
     for si = 1, #steps do
         local st = Guide.StepStatus(si)
+        status[si] = st
         if st ~= "na" then
+            if si < cursor then pastCount = pastCount + 1 elseif si > cursor then futureCount = futureCount + 1 end
+        end
+    end
+    local pastSeen, futureSeen = 0, 0
+    for si = 1, #steps do
+        local st = status[si]
+        local skip = false
+        if st ~= "na" then
+            if si < cursor then
+                pastSeen = pastSeen + 1
+                skip = pastSeen <= pastCount - PAST_CAP
+            elseif si > cursor then
+                futureSeen = futureSeen + 1
+                skip = futureSeen > FUTURE_CAP
+            end
+        end
+        if st ~= "na" and not skip then
             local want = (si < cursor and "past") or (si == cursor and "now") or "next"
             if want ~= section then
                 section = want
                 y = addLabel(y, want == "past" and "EARLIER STEPS" or (want == "now" and "CURRENT STEP") or "COMING UP")
+                if want == "past" and pastCount > PAST_CAP then
+                    y = addRow(y, TG.Color(TG.C.muted, ("%d earlier steps"):format(pastCount - PAST_CAP)), nil, { state = "done" })
+                end
             end
             local step = steps[si]
             local sub, gd, gt = stepSummary(si, step)
@@ -285,13 +310,17 @@ local function renderFixed(g, steps)
             y = addRow(y, title, sub, { state = state, icon = icon, iconColor = color, si = si,
                 num = gt > 0 and (gd .. "/" .. gt) or tostring(si) })
             if si == cursor then currentY = rowY end
+            if si > cursor and futureSeen == FUTURE_CAP and futureCount > FUTURE_CAP then
+                y = addRow(y, TG.Color(TG.C.muted, ("%d more steps"):format(futureCount - FUTURE_CAP)), nil, { state = "todo" })
+            end
         end
     end
     if #steps == 0 then y = addRow(y, "This guide has no steps.", nil, { state = "todo" }) end
     if Guide.Finished() then
         y = addLabel(y, "FINISHED")
-        y = addRow(y, TG.Color(TG.C.good, "Guide complete"), g.next and Guide.registry[g.next]
-            and ("Next up: " .. Guide.registry[g.next].title) or nil, { state = "todo", icon = TG.TEX.check })
+        local nextId = Guide.NextOf(g)
+        y = addRow(y, TG.Color(TG.C.good, "Guide complete"), nextId
+            and ("Next up: " .. Guide.registry[nextId].title) or nil, { state = "todo", icon = TG.TEX.check })
         currentY = y
     end
     summary:SetText(("%s  %d of %d steps done"):format(TG.Color(TG.C.gold, g.title), done, total)

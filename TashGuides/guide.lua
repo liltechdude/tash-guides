@@ -71,6 +71,8 @@ end
 
 local function compile(def)
     if def.compiled then return def end
+    -- Guides generated from QuestieDB (zones) build their steps the first time they are loaded.
+    if def.build and not def.steps then def.steps = def.build() end
     local steps = {}
     for i, raw in ipairs(def.steps or {}) do
         local step = { index = i, title = raw.title, note = raw.note, goals = {},
@@ -79,6 +81,16 @@ local function compile(def)
             if type(rg) == "table" and rg[1] then step.goals[#step.goals + 1] = compileGoal(rg, def) end
         end
         steps[i] = step
+    end
+    -- where each quest is accepted: if the player walks past that step without taking the quest,
+    -- its later complete / turn-in goals no longer wait on it (generated guides, see GoalStatus)
+    if def.hideUnavailable then
+        def.acceptStep = {}
+        for si, step in ipairs(steps) do
+            for _, goal in ipairs(step.goals) do
+                if goal.type == "accept" and goal.quest and not def.acceptStep[goal.quest] then def.acceptStep[goal.quest] = si end
+            end
+        end
     end
     def.compiledSteps = steps
     def.compiled = true
@@ -109,8 +121,20 @@ function Guide.GoalStatus(si, gi, goal)
     if goal.quest then
         local q = goal.quest
         if not AV.ForPlayer(q) then return "na" end
-        -- the quest giver did not list it for this character: do not wait on it
-        if AV.NotOffered(q) and not QL.InLog(q) and not QL.IsCompleted(q) then return "na" end
+        if not QL.InLog(q) and not QL.IsCompleted(q) then
+            -- the quest giver did not list it for this character: do not wait on it
+            if AV.NotOffered(q) then return "na" end
+            local g = Guide.active
+            -- a quest that can no longer be taken (an exclusive one was done, it expired)
+            if g and g.hideUnavailable then
+                if AV.Gone(q) then return "na" end
+                -- its pick-up is behind you and you never took it: nothing left to complete or hand in
+                local at = t ~= "accept" and g.acceptStep and g.acceptStep[q]
+                if at and at < Guide.cursor then return "na" end
+            end
+            -- class / racial quests left out of the main guides by the opt-out
+            if g and not g.chain and not Guide.ChainsIncluded() and TG.Chains.Kind(q) then return "na" end
+        end
         if t == "accept" then
             if QL.InLog(q) or QL.IsCompleted(q) then return "done" end
         elseif t == "complete" then
@@ -421,12 +445,16 @@ function Guide.Evaluate()
     TG.Fire("TG_GUIDE")
 end
 
-function Guide.Load(id)
+-- system = true when the addon picks the guide (start-up, default), not the player.
+-- keepSaved = true leaves the saved guide id alone (a saved zone guide that has not been
+-- generated yet while a stand-in is shown).
+function Guide.Load(id, system, keepSaved)
     local def = Guide.registry[id]
     if not def then TG.Print("no guide named %s", tostring(id)) return end
     if not def.dynamic then compile(def) end
     Guide.active = def
-    TG.char.guide = id
+    if not keepSaved then TG.char.guide = id end
+    if not system then TG.char.guideChosen = true end
     Guide.view = nil
     if def.dynamic then
         Guide.cursor = 1
@@ -564,6 +592,16 @@ function Guide.Suits(def)
     return true
 end
 
+local GROUP_ORDER = { smart = 1, curated = 2, zone = 3, class = 4, race = 5, prof = 6 }
+
+-- "smart" | "curated" (hand-written) | "zone" (generated) | "class" | "race" | "prof"
+function Guide.GroupOf(def)
+    if def.group then return def.group end
+    if def.chain then return def.chain end
+    if def.dynamic then return "smart" end
+    return "curated"
+end
+
 function Guide.List()
     local out = {}
     for _, id in ipairs(Guide.order) do
@@ -571,25 +609,60 @@ function Guide.List()
         if Guide.Suits(def) then out[#out + 1] = def end
     end
     table.sort(out, function(a, b)
-        if (a.chain ~= nil) ~= (b.chain ~= nil) then return a.chain == nil end
-        if (a.dynamic or false) ~= (b.dynamic or false) then return a.dynamic == true end
+        local ga, gb = GROUP_ORDER[Guide.GroupOf(a)], GROUP_ORDER[Guide.GroupOf(b)]
+        if ga ~= gb then return ga < gb end
         if (a.minLevel or 0) ~= (b.minLevel or 0) then return (a.minLevel or 0) < (b.minLevel or 0) end
         return a.title < b.title
     end)
     return out
 end
 
+-- Where a guide with no explicit next one sends you when you finish it.
+function Guide.NextOf(def)
+    if not def then return nil end
+    local n = def.next
+    if n and Guide.registry[n] then return n end
+    if def.nextFn then
+        n = def.nextFn()
+        if n and Guide.registry[n] then return n end
+    end
+    if not def.chain and not def.dynamic and Guide.registry.SMART then return "SMART" end
+    return nil
+end
+
 function Guide.PickDefault()
     local level = UnitLevel("player") or 1
     local best
     for _, def in ipairs(Guide.List()) do
-        if not def.dynamic and not def.chain and level >= (def.minLevel or 1) - 1 and level <= (def.maxLevel or 60) then
+        if Guide.GroupOf(def) == "curated" and level >= (def.minLevel or 1) - 1 and level <= (def.maxLevel or 60) then
             compile(def)
             -- prefer race-specific guides, then the one with steps left
             if not best or (def.races and not best.races) then best = def end
         end
     end
-    return best and best.id or "SMART"
+    if best then return best.id end
+    -- No hand-written guide fits: use the generated guide for the zone you stand in.
+    local map = WP.PlayerMap()
+    local zone = map and Guide.registry["ZONE_" .. map]
+    if zone and level >= (zone.minLevel or 1) - 3 and level <= (zone.maxLevel or 60) + 2 then return zone.id end
+    return "SMART"
+end
+
+-- Zone guides appear a moment after login (they are indexed in slices). A saved zone guide
+-- is restored then; a character with no chosen guide is moved off the Smart Guide to the
+-- guide for the zone it is standing in.
+function Guide.OnZones()
+    local pending = Guide.pending
+    if pending then
+        Guide.pending = nil
+        if Guide.registry[pending] then Guide.Load(pending, true)
+        elseif Guide.active then TG.char.guide = Guide.active.id end
+        return
+    end
+    if not TG.char.guideChosen and Guide.active and Guide.active.id == "SMART" then
+        local pick = Guide.PickDefault()
+        if pick ~= "SMART" then Guide.Load(pick, true) end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -652,8 +725,15 @@ end
 
 function Guide.Init()
     local id = TG.char.guide
-    if not id or not Guide.registry[id] then id = Guide.PickDefault() end
-    Guide.Load(id)
+    -- A character that already has a saved guide chose it (the flag did not exist before).
+    if TG.char.guideChosen == nil then TG.char.guideChosen = id ~= nil end
+    local pending
+    if id and not Guide.registry[id] and id:find("^ZONE_") then pending, id = id, nil end
+    if not id or not Guide.registry[id] then id = pending and "SMART" or Guide.PickDefault() end
+    Guide.pending = pending
+    Guide.Load(id, true, pending ~= nil)
+    TG.On("TG_ZONES", Guide.OnZones)
+    if TG.Zones and TG.Zones.ready then Guide.OnZones() end
 
     local function soon() TG.Schedule("guide", 0.1, Guide.Evaluate) end
     TG.On("TG_QUESTLOG", soon)

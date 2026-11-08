@@ -244,7 +244,7 @@ function V.Refresh()
     if not g then
         y = addRow(y, "message", "No guide loaded. Click the book icon to choose one.", {})
     elseif finished then
-        local nextDef = g.next and Guide.registry[g.next]
+        local nextDef = Guide.registry[Guide.NextOf(g) or ""]
         y = addRow(y, "message", "You finished " .. TG.Color(TG.C.gold, g.title) .. "!" ..
             (nextDef and ("\nNext up: " .. TG.Color(TG.C.accent, nextDef.title) .. ". Press > to continue.") or ""), {})
     elseif g.dynamic then
@@ -305,13 +305,26 @@ end
 -- Guide picker
 -- ---------------------------------------------------------------------------
 
+local PICK_W, PICK_ROW, PICK_MAX = 330, 22, 540
+local PICK_TOP, PICK_BOTTOM = 28, 62
+
+local function sectionLabel(def)
+    local g = Guide.GroupOf(def)
+    if g == "smart" or g == "curated" then return "SMART & CURATED GUIDES" end
+    if g == "zone" then
+        local b = math.floor((def.minLevel or 1) / 10) * 10
+        return ("ZONES - LEVELS %d-%d"):format(math.max(b, 1), b + 10)
+    end
+    if g == "class" or g == "race" then return "CLASS & RACE QUESTS" end
+    return "PROFESSION QUESTS"
+end
+
 local function buildPicker()
     picker = CreateFrame("Frame", "TashGuidesPicker", UIParent, BackdropTemplateMixin and "BackdropTemplate")
-    picker:SetSize(300, 100)
+    picker:SetSize(PICK_W, 100)
     picker:SetFrameStrata("DIALOG")
     TG.Skin(picker, 0.96)
     picker:SetBackdropBorderColor(TG.C.accent[1], TG.C.accent[2], TG.C.accent[3], 0.8)
-    picker:SetPoint("TOPLEFT", frame, "TOPRIGHT", 6, 0)
     picker:EnableMouse(true)
     picker:Hide()
     local t = picker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -320,7 +333,20 @@ local function buildPicker()
     local close = CreateFrame("Button", nil, picker, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", 2, 2)
     close:SetScale(0.8)
-    picker.buttons = {}
+
+    picker.scroll = CreateFrame("ScrollFrame", nil, picker)
+    picker.scroll:SetPoint("TOPLEFT", 8, -PICK_TOP)
+    picker.scroll:SetWidth(PICK_W - 22)
+    picker.child = CreateFrame("Frame", nil, picker.scroll)
+    picker.child:SetWidth(PICK_W - 22)
+    picker.child:SetHeight(1)
+    picker.scroll:SetScrollChild(picker.child)
+    picker.scroll:EnableMouseWheel(true)
+    picker.scroll:SetScript("OnMouseWheel", function(self, delta)
+        local max = math.max(0, (picker.child:GetHeight() or 0) - (self:GetHeight() or 0))
+        self:SetVerticalScroll(math.max(0, math.min(max, (self:GetVerticalScroll() or 0) - delta * 66)))
+    end)
+    picker.buttons, picker.sections = {}, {}
     tinsert(UISpecialFrames, "TashGuidesPicker")
 end
 
@@ -328,64 +354,81 @@ function V.ShowPicker()
     if not picker then buildPicker() end
     if picker:IsShown() then picker:Hide() return end
     local list = Guide.List()
-    local y = 30
-    picker.sections = picker.sections or {}
-    local sectionN, lastKind = 0, nil
+    local y, activeY = 0, 0
+    local sectionN, lastLabel = 0, nil
+    local known = TG.Chains.KnownSkills()
     for i, def in ipairs(list) do
-        local kind = def.chain and "chain" or "main"
-        if kind ~= lastKind then
-            lastKind = kind
+        local label = sectionLabel(def)
+        if label ~= lastLabel then
+            lastLabel = label
             sectionN = sectionN + 1
             local sec = picker.sections[sectionN]
             if not sec then
-                sec = TG.UI.SectionLabel(picker)
-                sec:SetWidth(280)
+                sec = TG.UI.SectionLabel(picker.child)
+                sec:SetWidth(PICK_W - 28)
                 picker.sections[sectionN] = sec
             end
             sec:ClearAllPoints()
-            sec:SetPoint("TOPLEFT", 10, -y)
-            sec.text:SetText(kind == "main" and "MAIN GUIDES" or "CLASS & RACE CHAINS")
+            sec:SetPoint("TOPLEFT", 2, -(y + 4))
+            sec.text:SetText(label)
             sec:Show()
-            y = y + 18
+            y = y + 22
         end
         local b = picker.buttons[i]
         if not b then
-            b = textButton(picker, "", 280, nil)
-            b:SetHeight(34)
+            b = textButton(picker.child, "", PICK_W - 26, nil)
+            b:SetHeight(PICK_ROW)
             b.text:ClearAllPoints()
-            b.text:SetPoint("TOPLEFT", 8, -5)
+            b.text:SetPoint("LEFT", 8, 0)
             b.text:SetJustifyH("LEFT")
-            b.sub = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            b.sub:SetPoint("BOTTOMLEFT", 8, 5)
             b.lvl = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
             b.lvl:SetPoint("RIGHT", -8, 0)
             picker.buttons[i] = b
         end
         b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", 10, -y)
+        b:SetPoint("TOPLEFT", 2, -y)
         local active = Guide.active and Guide.active.id == def.id
+        if active then activeY = y end
         b.text:SetText((active and TG.Color(TG.C.good, "> ") or "") .. def.title)
-        b.sub:SetText(def.subtitle or "")
-        b.lvl:SetText(def.dynamic and "any" or ("%d-%d"):format(def.minLevel or 1, def.maxLevel or 60))
+        b.text:SetWidth(PICK_W - 120)
+        local learned = def.learned and def.learned()
+        b.lvl:SetText(def.dynamic and "any"
+            or (learned and TG.Color(TG.C.good, "learned"))
+            or ("%d-%d"):format(def.minLevel or 1, def.maxLevel or 60))
         b:SetScript("OnClick", function()
             picker:Hide()
             Guide.Load(def.id)
             TG.Print("loaded %s", def.title)
         end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(def.title, TG.C.gold[1], TG.C.gold[2], TG.C.gold[3])
+            local sub = type(def.subtitle) == "function" and def.subtitle() or def.subtitle
+            if sub then GameTooltip:AddLine(sub, 0.8, 0.8, 0.8) end
+            if not def.dynamic then
+                GameTooltip:AddLine(("Levels %d-%d"):format(def.minLevel or 1, def.maxLevel or 60), 0.8, 0.8, 0.8)
+                local at = TG.char.cursor[def.id]
+                if at then GameTooltip:AddLine(("You are at step %d"):format(at), TG.C.good[1], TG.C.good[2], TG.C.good[3]) end
+            end
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", GameTooltip_Hide)
         b:Show()
-        y = y + 38
+        y = y + PICK_ROW + 2
     end
     for i = #list + 1, #picker.buttons do picker.buttons[i]:Hide() end
     for i = sectionN + 1, #picker.sections do picker.sections[i]:Hide() end
+    picker.child:SetHeight(math.max(y, 1))
+
+    local view = math.min(y, PICK_MAX - PICK_TOP - PICK_BOTTOM)
+    picker.scroll:SetHeight(view)
+    picker.scroll:SetVerticalScroll(math.max(0, math.min(y - view, activeY - 60)))
+
     if not picker.reset then
-        picker.reset = textButton(picker, "Restart current guide", 280, function()
+        picker.reset = textButton(picker, "Restart current guide", PICK_W - 20, function()
             picker:Hide()
             Guide.Reset()
         end)
-    end
-    picker.reset:ClearAllPoints()
-    picker.reset:SetPoint("TOPLEFT", 10, -(y + 4))
-    if not picker.chains then
         picker.chains = CreateFrame("CheckButton", nil, picker, "UICheckButtonTemplate")
         picker.chains:SetSize(22, 22)
         local fs = picker.chains:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -393,11 +436,13 @@ function V.ShowPicker()
         fs:SetText("Include class & race quests in main guides")
         picker.chains:SetScript("OnClick", function(self) Guide.SetChainsIncluded(self:GetChecked() and true or false) end)
     end
+    picker.reset:ClearAllPoints()
+    picker.reset:SetPoint("BOTTOMLEFT", 10, 8)
     picker.chains:ClearAllPoints()
-    picker.chains:SetPoint("TOPLEFT", 8, -(y + 28))
+    picker.chains:SetPoint("BOTTOMLEFT", 8, 30)
     picker.chains:SetChecked(Guide.ChainsIncluded())
-    picker:SetHeight(y + 58)
-    TG.UI.Beside(picker, frame, 300)
+    picker:SetHeight(PICK_TOP + view + PICK_BOTTOM)
+    TG.UI.Beside(picker, frame, PICK_W)
     picker:Show()
 end
 
@@ -459,7 +504,7 @@ function V.Init()
         return "Next step (Shift: skip)"
     end, function()
         if IsShiftKeyDown() then Guide.Skip()
-        elseif Guide.Finished() and Guide.active.next then Guide.Load(Guide.active.next)
+        elseif Guide.Finished() and Guide.NextOf(Guide.active) then Guide.Load(Guide.NextOf(Guide.active))
         else Guide.Next() end
     end)
     stepBar.next:SetPoint("RIGHT", -2, 0)

@@ -91,6 +91,7 @@ TG.DEFAULTS = {
 
 TG.CHAR_DEFAULTS = {
     guide = nil,        -- active guide id ("SMART" for the dynamic guide)
+    guideChosen = nil,  -- true once the player picked a guide (until then zone guides are suggested)
     cursor = {},        -- guide id -> step index
     manual = {},        -- "guide:step:goal" -> true for goals the player ticked / reached
     skipped = {},       -- "guide:step" -> true
@@ -313,6 +314,8 @@ local HELP = {
     "/tg next | prev | skip   move through guide steps",
     "/tg steps          past and upcoming steps",
     "/tg class | race    open your class / racial quest chain",
+    "/tg zone            open the guide for the zone you are in",
+    "/tg prof <name>     open a profession quest guide (e.g. /tg prof alchemy)",
     "/tg chains          include or hide class & race quests in the main guides",
     "/tg route linear | nearest   Smart Guide: fixed route or nearest-first",
     "/tg route reset | skip       plan the route again / skip the current step",
@@ -361,6 +364,28 @@ SlashCmdList["TASHGUIDES"] = function(msg)
         else
             TG.Print("Smart Guide routing is %s. Usage: /tg route linear | nearest | reset | skip", TG.Smart.Mode())
         end
+    elseif cmd == "zone" then
+        local map = TG.Way.PlayerMap()
+        local id = map and ("ZONE_" .. map)
+        if id and TG.Guide.registry[id] then TG.Guide.Load(id)
+        elseif not TG.Zones.ready then TG.Print("zone guides are still being built - try again in a moment")
+        else TG.Print("no zone guide for %s", map and TG.MapName(map) or "here") end
+    elseif cmd == "prof" or cmd == "profession" then
+        local want = (rest or ""):lower()
+        local found
+        for skill, name in pairs(TG.Chains.PROFESSIONS) do
+            local id = "PROF_" .. skill
+            if want ~= "" and name:lower():find(want, 1, true) == 1 and TG.Guide.registry[id] then found = id end
+        end
+        if found then TG.Guide.Load(found)
+        else
+            local names = {}
+            for skill, name in pairs(TG.Chains.PROFESSIONS) do
+                if TG.Guide.registry["PROF_" .. skill] then names[#names + 1] = name:lower() end
+            end
+            table.sort(names)
+            TG.Print("usage: /tg prof <name> - %s", #names > 0 and table.concat(names, ", ") or "no profession quests found")
+        end
     elseif cmd == "chains" then
         local on = not TG.Guide.ChainsIncluded()
         TG.Guide.SetChainsIncluded(on)
@@ -394,6 +419,9 @@ SlashCmdList["TASHGUIDES"] = function(msg)
         if g then TG.Print("guide: %s  step %d/%d", g.title, TG.Guide.cursor or 0, #TG.Guide.Steps()) end
         TG.Print("class quests: %d  racial quests: %d  (%s)", TG.Chains.Count("class"), TG.Chains.Count("race"),
             TG.Guide.ChainsIncluded() and "included in main guides" or "hidden from main guides")
+        local profs = 0
+        for _ in pairs(TG.Chains.professions) do profs = profs + 1 end
+        TG.Print("zone guides: %d (%d quests)  profession guides: %d", #(TG.Zones.maps or {}), TG.Zones.count or 0, profs)
     else
         TG.Print("commands:")
         for _, line in ipairs(HELP) do DEFAULT_CHAT_FRAME:AddMessage("  " .. line) end

@@ -111,6 +111,21 @@ end
 
 function AV.NotOffered(qid) return notOffered(qid, UnitLevel("player") or 1) end
 
+-- Reasons a quest can no longer be picked up at all (not just not yet): an exclusive quest
+-- was taken, a breadcrumb is moot, an offer expired, or the character is too high a level.
+local GONE = { exclusive = true, breadcrumb = true, expired = true, ["too high"] = true }
+local goneCache = {}
+function AV.Gone(qid)
+    local c = goneCache[qid]
+    if c == nil then
+        local ok, why = AV.IsEligible(qid)
+        c = (not ok and GONE[why]) and true or false
+        goneCache[qid] = c
+    end
+    return c
+end
+function AV.ForgetGone() wipe(goneCache) end
+
 -- Returns true when the quest can be accepted now. `reason` explains a false.
 function AV.IsEligible(qid, level)
     local QL = TG.QuestLog
@@ -304,6 +319,9 @@ function AV.Init()
     TG.On("TG_QUESTLOG", function(membership) if membership then soon() end end)
     TG.On("PLAYER_LEVEL_UP", function() TG.Schedule("avail", 1.0, AV.Rebuild) end)
     TG.On("SKILL_LINES_CHANGED", soon)
+    TG.On("TG_QUESTLOG", function(membership) if membership then AV.ForgetGone() end end)
+    TG.On("TG_QUEST_DONE", AV.ForgetGone)
+    TG.On("PLAYER_LEVEL_UP", AV.ForgetGone)
     for _, e in ipairs({ "GOSSIP_SHOW", "QUEST_GREETING" }) do
         TG.On(e, function()
             local npc = TG.NpcIdFromGuid(UnitGUID("npc"))

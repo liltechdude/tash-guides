@@ -7,6 +7,7 @@ local MODULES = {
     { "QuestLog", "QuestLog" },
     { "Avail", "Availability" },
     { "Chains", "Class & race chains" },
+    { "Zones", "Zone guides" },
     { "Viewer", "Guide window" },
     { "Steps", "Steps panel" },
     { "Arrow", "Arrow" },

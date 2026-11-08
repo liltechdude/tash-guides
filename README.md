@@ -1,4 +1,4 @@
-# TashGuides 0.8.1
+# TashGuides 0.9.0
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -13,7 +13,7 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 - [Installation](#installation)
 - [Getting started](#getting-started)
 - [Guide window](#guide-window)
-- [Guides: curated and Smart](#guides-curated-and-smart)
+- [Guides: curated, zone, class, profession and Smart](#guides-curated-zone-class-profession-and-smart)
 - [Waypoint arrow](#waypoint-arrow)
 - [Quest tracker](#quest-tracker)
 - [Map and minimap pins](#map-and-minimap-pins)
@@ -36,7 +36,9 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 | **Guide window** | The current step's goals (accept, complete, turn in, go to, talk to...) with checkmarks and objective progress. Moves to the next step when every goal is done. Shows a few upcoming steps and a progress bar. `<` / `>` browse earlier and later steps without moving the guide; click the step bar to return to the current one. |
 | **Steps panel** | The note icon in the guide window header (or `/tg steps`). Every step of the guide: earlier steps (done), the current one and what is coming up, with per-step goal counts. Click a step to view it, right-click to move the guide there. For the Smart Guide it lists every task lined up plus your recent quest activity. |
 | **Smart Guide** | Works in any zone without hand-written data. Builds steps from your turn-ins, objectives and nearby quest givers. **Linear** routing (default) plans a fixed route and walks you through it step by step like a written guide; **Nearest** routing re-sorts by distance as you move. Used when no curated guide fits your character. |
-| **Curated guides** | Northshire Valley (Human 1-6) and Valley of Trials (Orc/Troll 1-6). Each continues into the Smart Guide. Quests for other classes are hidden automatically. |
+| **Curated guides** | Northshire Valley (Human 1-6) and Valley of Trials (Orc/Troll 1-6), written by hand. Each continues into the generated guide for its zone. Quests for other classes are hidden automatically. |
+| **Zone guides** | A step-by-step guide for every zone from level 1 to 60 (around 40 of them), generated from QuestieDB for your faction, race and class: chains in order, quests grouped by giver and objective area, a believable level pace. Opens in the guide window like any other guide, with the arrow, tracker and Steps panel. |
+| **Profession guides** | One guide per profession with quests (*Alchemy quests*, *Cooking quests*, ...), ordered by the skill each one needs. Professions you have learned are marked. |
 | **Class & race chains** | Your class quests (trainer letters, class quest lines) and racial quests are found in QuestieDB at login and offered as their own guides, *Warrior quests*, *Human quests* and so on, in level order with prerequisites first. The main guides (zone guides and the Smart Guide) include them too unless you opt out: class crest in the guide header, the checkbox in the guide picker, the option *Include class & race quests*, or `/tg chains`. The Smart Guide offers every class/racial quest you can take wherever its giver is, ranked ahead of ordinary quests at a similar distance. |
 | **Waypoint arrow** | Points to the current goal, colored green to red by heading, with distance in yards and ETA. Shows a check when you arrive at a spot, and an **objective-area** display (colored ring, objective icon, *IN OBJECTIVE AREA* and your progress) once you are among the mobs or nodes a quest needs. Right-click it to clear a manual waypoint. Targets on other maps (a trainer in a city, a turn-in two zones over) still get a direction and distance. When the current step has nothing to point at (an item-started quest, a note) the arrow points at the next step that does, marked *Next: ...*. For objectives with many spawns it favors spawns ahead of you over ones behind (tunable in options: *Prefer spawns ahead of you*) and moves on from spawns you just cleared. |
 | **Quest tracker** | Same look as the guide window. Quests the current guide step works on are grouped first (*Guide step*, with an accent edge), then *This zone* by distance, then *Elsewhere*. Objectives are colored by progress with a progress bar per quest; class/racial quests are tagged. Click: waypoint. Shift: link. Ctrl: quest log. Right-click: hide. |
@@ -69,7 +71,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.8.1 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.9.0 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
@@ -80,7 +82,10 @@ To update, replace the `TashGuides` folder with the new one. Your settings and p
 When you log in, TashGuides picks a guide for you:
 
 - If a curated guide matches your faction and race and you are within its level range (or one level below it), it loads that guide.
+- Otherwise, if there is a zone guide for the zone you are standing in and your level fits it, it loads that one. (Zone guides are built a moment after login, so the Smart Guide shows briefly first.)
 - Otherwise it loads the **Smart Guide**.
+
+Once you choose a guide yourself, TashGuides never swaps it for another.
 
 From there:
 
@@ -96,6 +101,8 @@ Handy first commands:
 /tg next | prev | skip   move through steps (Shift-click the > button also skips)
 /tg steps                past and upcoming steps
 /tg class | race         open your class / racial quest chain
+/tg zone                 the generated guide for the zone you are in
+/tg prof alchemy         a profession quest guide
 /tg chains               include or hide class & race quests in the main guides
 /tg arrow | tracker      toggle the arrow / quest tracker
 /tg way 45.2 61.8 note   waypoint on your current map
@@ -179,7 +186,7 @@ Below the current step, the window shows the first goal of the next few steps, d
 
 ---
 
-## Guides: curated and Smart
+## Guides: curated, zone, class, profession and Smart
 
 ### Curated guides
 
@@ -188,11 +195,33 @@ Below the current step, the window shows the first goal of the next few steps, d
 | Northshire Valley | Human (Alliance) | 1-6 |
 | Valley of Trials | Orc and Troll (Horde) | 1-6 |
 
-Curated guides are fixed routes written by hand: which quests to take, in what order, where to go, and tips along the way. Quest names, NPC names and locations are filled in from QuestieDB. Both guides finish by handing you off to the Smart Guide.
+Curated guides are fixed routes written by hand: which quests to take, in what order, where to go, and tips along the way. Quest names, NPC names and locations are filled in from QuestieDB. Both guides finish by handing you off to the generated guide for their zone (Elwynn Forest, Durotar), or the Smart Guide when that is missing.
 
 The picker only lists guides that suit your character's faction and race.
 
 > More curated guides are welcome. See [For guide authors](#for-guide-authors-and-developers).
+
+### Zone guides
+
+Zone guides cover every zone with enough quests, from level 1 to 60. They are not typed in: TashGuides reads QuestieDB at login and builds each one for the character that is logged in, so a Tauren Warrior and a Gnome Mage get different guides for the same zone. Open them from the picker (they are grouped by level range), with `/tg zone` for the zone you are standing in, or let the guide pick one for you at login (see [Getting started](#getting-started)).
+
+**What goes in.** Quests your character can take: your faction, race and class, level 60 or lower, started by someone who stands somewhere on the map, filed under the zone the giver is in. A quest from another class's trainer is left out even if the database forgot its class flag (a `<Hunter Trainer>` is a hunter's quest). **What stays out:** repeatable and holiday quests, profession quests (they have their own guides), quests that start from an item or inside an instance, and quests whose every objective is inside an instance. Breadcrumb quests whose target is in the same zone are skipped, and of two exclusive quests only the first is listed.
+
+**How the route is worked out.** TashGuides plays the zone in its head. Quests whose earlier quests in the zone are done become available; a level counter rises as quests are handed in, so a level 20 quest does not appear while the level 12 ones are still open; and the quest log never holds more than ten quests at a time. Each move goes to the cheapest next thing: handing in costs 0.6 of the walking distance, picking up 0.85 (plus half the walk from the giver to the objectives, so a quest whose mobs are far away waits), objectives 1.0. Then everything doable from that spot joins the same step: hand-ins and pick-ups at one NPC, objectives within about 140 yards of each other. A step starts with hand-ins, then pick-ups, then objectives.
+
+**Class and racial quests** get steps of their own, tagged `[class]` or `[race]`, so the *Include class & race quests* opt-out hides exactly those steps and leaves the rest of the route alone.
+
+**It adapts to you.** A step for a quest that can no longer be taken (you did its exclusive twin, it expired, you are too high a level) disappears. If you skip a pick-up, the objective and hand-in steps for that quest stop waiting on it. If a quest says `requires level 14`, that is your cue to do other quests; use **Shift-click `>`** to skip a step you cannot do yet.
+
+The route depends only on the database and your faction, race and class, never on your progress, so your place in a zone guide survives relogs and is kept per character. If you update QuestieDB, a guide can be a few steps different, which only shifts the numbers.
+
+At the end of a zone guide the right arrow offers the next one: a zone a step up in level, preferably on the same continent and nearby.
+
+### Profession guides
+
+Each profession that has quests (Alchemy, Blacksmithing, Cooking, Enchanting, Engineering, First Aid, Fishing, Herbalism, Leatherworking, Mining, Skinning, Tailoring, and Jewelcrafting, Inscription or Riding where your client has them) gets a guide, in the picker under *Profession quests* and with `/tg prof alchemy` (any start of the name works). Quests are ordered by the skill they need, earliest first, and earlier quests in a chain come before later ones. Each step names the skill, the level and where the quest starts. Professions you have learned are marked `learned` in the picker. Class and racial quest chains are listed with them as separate guides.
+
+Profession quests are not part of the Smart Guide or the zone guides; the map pins for them follow the *Profession quests* pin option.
 
 ### Smart Guide
 
@@ -220,7 +249,9 @@ The Smart Guide only suggests quests you can actually accept right now. It appli
 
 Open the picker with the book icon, `/tg guides`, or the **Choose guide...** button in the options. Click a guide to load it. The active one is marked with `>`. The picker also has a **Restart current guide** button.
 
-Your place in each curated guide is saved separately for every character, so you can swap guides and come back where you left off.
+The picker is a scrolling list in sections: Smart and curated guides, zones by level range (1-10, 10-20, and so on), class and race quests, and profession quests. The guide you are on is marked with `>` and the list opens scrolled to it; hover a guide to see its level range and your place in it.
+
+Your place in every guide is saved separately for each character, so you can swap guides and come back where you left off.
 
 ---
 
@@ -372,6 +403,11 @@ The commands are `/tg` and `/tashguides` (they are the same).
 | `/tg show` / `/tg hide` | Show or hide the guide window explicitly. |
 | `/tg guides` | Open the guide picker. |
 | `/tg smart` | Switch to the Smart Guide. |
+| `/tg zone` | Open the generated guide for the zone you are standing in. |
+| `/tg prof <name>` | Open a profession quest guide, e.g. `/tg prof alchemy`. With no name it lists the professions that have one. |
+| `/tg class` / `/tg race` | Open your class / racial quest chain guide. |
+| `/tg chains` | Include or hide class and racial quests in the main guides. |
+| `/tg steps` | Show or hide the Steps panel. |
 | `/tg next` | Next step (confirms a notes-only step, or moves ahead manually). |
 | `/tg prev` | Look back at the previous step. |
 | `/tg skip` | Skip the current step. |
@@ -384,7 +420,7 @@ The commands are `/tg` and `/tashguides` (they are the same).
 | `/tg clear` | Clear the waypoint you set. |
 | `/tg options` | Open the options window. |
 | `/tg reset` | Restart the current curated guide from step 1. |
-| `/tg status` | Print the version, the QuestieDB connection, how many quests are currently available to you, and your place in the current guide. |
+| `/tg status` | Print the version, the QuestieDB connection, how many quests are currently available to you, your place in the current guide, and how many zone and profession guides were generated. |
 | `/tg help` | List the commands in chat. (Any unknown command does the same.) |
 
 ---
@@ -451,7 +487,7 @@ TashGuides also registers with the game's addon compartment menu: click it to to
 ## Saved data and per-character progress
 
 - **Settings** (everything in the options, plus window positions) are shared across all your characters and stored in `TashGuidesDB`.
-- **Progress** is stored per character in `TashGuidesCharDB`: the active guide, your step in each curated guide, skipped steps, goals you ticked by hand, quests hidden from the tracker, and quests you have handed in.
+- **Progress** is stored per character in `TashGuidesCharDB`: the active guide, your step in each guide, skipped steps, goals you ticked by hand, quests hidden from the tracker, and quests you have handed in.
 
 Both live in your `WTF` folder as `TashGuides.lua` files under `SavedVariables`. Deleting them (with the game closed) resets TashGuides to a clean state.
 
@@ -484,7 +520,13 @@ QuestieDB occasionally lacks a requirement the game enforces, most often a class
 You have not picked that quest up. Do the earlier goal in the step first.
 
 **My character is above level 6 and there is no curated guide.**
-That is expected. The curated guides cover the starting areas for now, and the Smart Guide covers everything else.
+That is expected: the curated guides are the hand-written starting areas. From there the generated [zone guides](#zone-guides) cover levels 1 to 60 and the Smart Guide works anywhere. `/tg zone` opens the one for where you are. They appear a moment after login; if the picker shows no zones, `/tg status` says how many were built.
+
+**A zone guide is missing a quest I know about, or has an odd step.**
+Zone guides are built from QuestieDB's data, so they can only be as good as it is. A quest is left out if it is not for your faction, race or class, repeatable, a holiday quest, or starts from an item or inside an instance. Holiday quests are recognised by their quest category (`HOLIDAY_SORT` in `TashGuides/zones.lua`); if one slips into a guide, add its category number there. Shift-click `>` skips any step.
+
+**A zone guide step waits on a quest I skipped.**
+It should not: once you pass a pick-up without taking it, that quest's objective and hand-in steps stop waiting. If a step still sticks, Shift-click `>` and tell us the quest.
 
 **I got stuck on a step.**
 Press **Shift + right arrow** (or `/tg skip`) to skip it. Right-click a go-to, talk, hearth or fly goal to tick it by hand. `/tg reset` restarts the guide.

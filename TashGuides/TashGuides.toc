@@ -2,7 +2,7 @@
 ## Title: |cff00b877Tash|cffffd100Guides|r
 ## Notes: Step-by-step leveling guides with a waypoint arrow, quest tracker, map and minimap quest pins, and quest tooltips for WoW Forever. Powered by QuestieDB.
 ## Author: TashGuides
-## Version: 0.8.1
+## Version: 0.9.0
 ## Dependencies: QuestieDB
 ## SavedVariables: TashGuidesDB
 ## SavedVariablesPerCharacter: TashGuidesCharDB
@@ -19,6 +19,7 @@ waypoint.lua
 guide.lua
 smart.lua
 chains.lua
+zones.lua
 guides\northshire.lua
 guides\valley_of_trials.lua
 viewer.lua

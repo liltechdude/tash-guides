@@ -642,6 +642,247 @@ do
     TG.db.positions.simtest = nil
 end
 
+print("zone and profession guides")
+do
+    local G, Z, AV, Cn = TG.Guide, TG.Zones, TG.Avail, TG.Chains
+    for _ = 1, 60 do if Z.ready then break end pump(20) end
+    check(Z.ready, "zone guides indexed (" .. tostring(Z.count) .. " quests in " .. #(Z.maps or {}) .. " zones)")
+    check(#(Z.maps or {}) > 0, "at least one zone guide was generated")
+
+    local function serialize(steps)
+        local out = {}
+        for i, st in ipairs(steps) do
+            local g = {}
+            for _, goal in ipairs(st) do g[#g + 1] = goal[1] .. goal[2] end
+            out[i] = (st.chain or "") .. "|" .. table.concat(g, ",")
+        end
+        return table.concat(out, ";")
+    end
+
+    -- invariants every generated guide must keep
+    local function audit(id)
+        local def = G.registry[id]
+        G.Load(id, true)
+        local steps = G.Steps()
+        local problems, firstProblem = 0, nil
+        local function bad(msg) problems = problems + 1 firstProblem = firstProblem or msg end
+        local pos, accept, complete, turnin = 0, {}, {}, {}
+        for si, step in ipairs(steps) do
+            if #step.goals == 0 then bad("step " .. si .. " is empty") end
+            for _, goal in ipairs(step.goals) do
+                pos = pos + 1
+                local q = goal.quest
+                if not q then bad("step " .. si .. " has a goal without a quest") else
+                    if not AV.ForPlayer(q) then bad("quest " .. q .. " is not for this character") end
+                    if goal.type == "accept" then
+                        if accept[q] then bad("quest " .. q .. " accepted twice") end
+                        accept[q] = pos
+                    elseif goal.type == "complete" then
+                        complete[q] = pos
+                        if not accept[q] then bad("quest " .. q .. " completed before it is accepted") end
+                    elseif goal.type == "turnin" then
+                        turnin[q] = pos
+                        if not accept[q] then bad("quest " .. q .. " turned in before it is accepted") end
+                        if complete[q] and complete[q] > pos then bad("quest " .. q .. " turned in before it is completed") end
+                    end
+                end
+            end
+        end
+        -- prerequisites that are in this guide come first (a few tolerated: gates that cannot open)
+        local late = 0
+        for q, at in pairs(accept) do
+            for _, p in ipairs(QuestDB.Get(q, "preQuestGroup") or {}) do
+                if accept[p] and (not turnin[p] or turnin[p] > at) then late = late + 1 end
+            end
+            local singles = QuestDB.Get(q, "preQuestSingle")
+            if singles and #singles > 0 then
+                local inGuide, any = true, false
+                for _, p in ipairs(singles) do
+                    if p < 0 or not accept[p] then inGuide = false end
+                    if turnin[p] and turnin[p] < at then any = true end
+                end
+                if inGuide and not any then late = late + 1 end
+            end
+        end
+        return steps, problems, firstProblem, late, accept
+    end
+
+    local biggest, biggestSteps = nil, 0
+    local total, totalProblems, totalLate, slowest = 0, 0, 0, 0
+    for _, map in ipairs(Z.maps or {}) do
+        local id = "ZONE_" .. map
+        local t0 = os.clock()
+        local steps, problems, first, late, accept = audit(id)
+        local ms = (os.clock() - t0) * 1000
+        slowest = math.max(slowest, ms)
+        total = total + 1
+        totalProblems, totalLate = totalProblems + problems, totalLate + late
+        if problems > 0 then check(false, id .. ": " .. tostring(first) .. " (" .. problems .. " problems)") end
+        if #steps > biggestSteps and #steps <= 500 then biggest, biggestSteps = id, #steps end
+        -- coverage: nearly every indexed quest of the zone is in the route
+        local have = 0
+        for _, q in ipairs(Z.byMap[map]) do if accept[q.id] then have = have + 1 end end
+        if have < #Z.byMap[map] * 0.9 then check(false, ("%s covers %d of %d quests"):format(id, have, #Z.byMap[map])) end
+    end
+    check(totalProblems == 0, ("%d zone guides keep their invariants (slowest %.0f ms, %d late prerequisites)"):format(total, slowest, totalLate))
+    check(slowest < 1500, ("zone guide generation is fast enough (%.0f ms)"):format(slowest))
+    check(totalLate <= math.max(2, total * 3), "prerequisites come before the quests that need them")
+
+    -- the same data gives the same route, every time
+    if biggest then
+        local map = tonumber(biggest:match("%d+"))
+        check(serialize(Z.Steps(map)) == serialize(Z.Steps(map)), "a zone guide is generated identically each time")
+    end
+
+    -- profession guides
+    local profIds = {}
+    for _, id in ipairs(G.order) do if id:find("^PROF_") then profIds[#profIds + 1] = id end end
+    print(("    %d profession guides"):format(#profIds))
+    for _, id in ipairs(profIds) do
+        local _, problems, first = audit(id)
+        if problems > 0 then check(false, id .. ": " .. tostring(first)) end
+    end
+    check(#profIds == 0 or G.registry[profIds[1]].chain == "prof", "profession guides are chain guides")
+
+    -- a generated guide plays through the real engine
+    local function inGuide()
+        local set = {}
+        for _, step in ipairs(G.Steps()) do for _, goal in ipairs(step.goals) do if goal.quest then set[goal.quest] = true end end end
+        return set
+    end
+    local function play(id)
+        G.Load(id, true)
+        local mine = inGuide()
+        local actions, stuck = 0, 0
+        for _ = 1, #G.Steps() * 14 + 100 do
+            if G.Finished() then break end
+            local si = G.cursor
+            local step = G.Steps()[si]
+            local acted = false
+            for gi, g in ipairs(step.goals) do
+                if G.GoalStatus(si, gi, g) == "todo" then
+                    actions = actions + 1
+                    if g.type == "accept" then
+                        -- prerequisites outside this guide are done elsewhere
+                        for _, key in ipairs({ "preQuestSingle", "preQuestGroup" }) do
+                            for _, p in ipairs(QuestDB.Get(g.quest, key) or {}) do if p > 0 and not mine[p] then completed[p] = true end end
+                        end
+                        local ok, why = AV.IsEligible(g.quest)
+                        if not ok and why == "level" then
+                            level = math.max(level, QuestDB.Get(g.quest, "requiredLevel"))
+                            fire("PLAYER_LEVEL_UP", level)
+                            pump(40)
+                            ok, why = AV.IsEligible(g.quest)
+                        end
+                        if ok then accept(g.quest, objectivesFor(g.quest))
+                        else stuck = stuck + 1 check(false, ("%s step %d: quest %d cannot be accepted (%s)"):format(id, si, g.quest, tostring(why))) G.Skip() end
+                    elseif g.type == "complete" then finishObjectives(g.quest)
+                    elseif g.type == "turnin" then turnin(g.quest) end
+                    acted = true
+                    break
+                end
+            end
+            if not acted then G.Next() end
+            pump(3)
+        end
+        return actions, stuck
+    end
+    local savedLevel = level
+    local toPlay = { biggest }
+    if profIds[1] then toPlay[#toPlay + 1] = profIds[1] end
+    for _, id in ipairs(toPlay) do
+        local actions, stuck = play(id)
+        check(G.Finished() and stuck == 0, ("%s plays through (%d actions, cursor %d/%d)"):format(id, actions, G.cursor, #G.Steps()))
+    end
+    level = savedLevel
+
+    -- class / race steps follow the opt-out; the rest of the route does not
+    if biggest then
+        G.Load(biggest, true)
+        local chainSteps, plain = {}, nil
+        for si, step in ipairs(G.Steps()) do
+            if step.chain then chainSteps[#chainSteps + 1] = si else plain = plain or si end
+        end
+        -- wipe the quest history so the steps count as to-do again
+        for q in pairs(completed) do completed[q] = nil end
+        TG.QuestLog.completed = {}
+        AV.ForgetGone()
+        G.Load(biggest, true)
+
+        -- skipping a pick-up must not leave its objectives and hand-in waiting forever
+        local q, accStep, laterStep, laterGoal
+        for si, step in ipairs(G.Steps()) do
+            for gi, goal in ipairs(step.goals) do
+                if goal.type == "accept" and not q and G.StepStatus(si) == "todo" then
+                    for sj = si + 1, #G.Steps() do
+                        for gj, other in ipairs(G.Steps()[sj].goals) do
+                            if other.quest == goal.quest and other.type ~= "accept" and not laterStep then laterStep, laterGoal = sj, gj end
+                        end
+                    end
+                    if laterStep then q, accStep = goal.quest, si end
+                end
+            end
+        end
+        if q then
+            G.Goto(accStep)
+            check(G.GoalStatus(laterStep, laterGoal, G.Steps()[laterStep].goals[laterGoal]) ~= "na", "before its pick-up is passed, the quest's later goals still wait")
+            G.Goto(accStep + 1)
+            check(G.GoalStatus(laterStep, laterGoal, G.Steps()[laterStep].goals[laterGoal]) == "na", "after skipping its pick-up, the quest's later goals no longer wait on it")
+            G.Goto(1)
+        end
+
+        if #chainSteps > 0 then
+            G.SetChainsIncluded(false)
+            local hidden = 0
+            for _, si in ipairs(chainSteps) do if G.StepStatus(si) == "na" then hidden = hidden + 1 end end
+            check(hidden == #chainSteps, ("opting out hides all %d class/race steps of %s"):format(#chainSteps, biggest))
+            G.SetChainsIncluded(true)
+        end
+    end
+
+    -- the steps panel copes with a long generated guide (it lists recent and upcoming steps only)
+    if biggest then
+        G.Load(biggest, true)
+        G.Goto(math.max(1, math.floor(#G.Steps() / 2)))
+        TG.db.steps.shown = true
+        check(pcall(TG.Steps.Refresh), "the steps panel renders a long generated guide (" .. #G.Steps() .. " steps)")
+        TG.db.steps.shown = false
+        TG.Steps.Refresh()
+        G.Goto(1)
+    end
+
+    -- the guide picker lists everything and scrolls
+    check(pcall(TG.Viewer.ShowPicker), "the guide picker opens with " .. #G.List() .. " guides")
+    TG.Viewer.ShowPicker()
+
+    -- with no guide chosen, a zone guide replaces the Smart Guide
+    local zone
+    for _, map in ipairs(Z.maps or {}) do
+        local def = Z.defs[map]
+        if def.minLevel >= 8 then zone = def break end
+    end
+    if zone then
+        local savedMap, savedChosen = player.map, TG.char.guideChosen
+        player.map, level = zone.map, zone.minLevel
+        TG.char.guideChosen = nil
+        G.Load("SMART", true)
+        G.OnZones()
+        check(G.active.id == zone.id, "an unchosen Smart Guide is replaced by the guide for the current zone (" .. tostring(G.active.id) .. ")")
+        TG.char.guideChosen = true
+        G.Load("SMART", true)
+        G.OnZones()
+        check(G.active.id == "SMART", "a chosen guide is never swapped out")
+        G.pending = zone.id
+        G.OnZones()
+        check(G.active.id == zone.id, "a saved zone guide is restored once zones are indexed")
+        local nextId = G.NextOf(zone)
+        check(nextId == nil or G.registry[nextId], "a zone guide suggests a registered next guide (" .. tostring(nextId) .. ")")
+        player.map, level, TG.char.guideChosen = savedMap, savedLevel, savedChosen
+    end
+    G.Load(expectGuide, true)
+    pump(20)
+end
+
 print("spawn picking")
 do
     local WP = TG.Way
