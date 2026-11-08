@@ -23,14 +23,15 @@ TG.TEX = {
     icon = "Interface\\Icons\\INV_Misc_Map_01",
 }
 
--- Accent palette (r, g, b) shared by every frame.
+-- Theme: jade and gold. Accent palette (r, g, b) shared by every frame; headers, rules,
+-- buttons and the arrow logo are all tinted from TG.C.accent.
 TG.C = {
-    accent = { 0.20, 0.72, 1.00 },
+    accent = { 0.00, 0.72, 0.47 },   -- jade #00B877
     gold = { 1.00, 0.82, 0.00 },
     good = { 0.30, 0.90, 0.35 },
     bad = { 1.00, 0.30, 0.25 },
     muted = { 0.55, 0.55, 0.60 },
-    bg = { 0.04, 0.05, 0.07 },
+    bg = { 0.03, 0.06, 0.05 },
     -- objective pin tints by objective kind
     monster = { 1.00, 0.35, 0.30 },
     item = { 1.00, 0.80, 0.20 },
@@ -47,7 +48,7 @@ function TG.Color(c, text) return "|cff" .. TG.Hex(c) .. tostring(text) .. "|r" 
 
 function TG.Print(msg, ...)
     if select("#", ...) > 0 then msg = msg:format(...) end
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33b8ffTash|cffffd100Guides|r: " .. tostring(msg))
+    DEFAULT_CHAT_FRAME:AddMessage("|cff00b877Tash|cffffd100Guides|r: " .. tostring(msg))
 end
 
 -- Errors from handlers that fire many times a second (casts, combat ticks) are reported once
@@ -255,7 +256,7 @@ function TG.Skin(frame, alpha)
     })
     local bg = TG.C.bg
     frame:SetBackdropColor(bg[1], bg[2], bg[3], alpha or 0.88)
-    frame:SetBackdropBorderColor(0.18, 0.20, 0.25, 1)
+    frame:SetBackdropBorderColor(0.15, 0.24, 0.20, 1)
 end
 
 -- Remember where the player dragged a frame.

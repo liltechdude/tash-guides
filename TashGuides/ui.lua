@@ -6,7 +6,7 @@ local TG = TashGuides
 local UI = {}
 TG.UI = UI
 
-UI.BRAND = "|cff33b8ffTash|r|cffffd100Guides|r"
+UI.BRAND = "|cff00b877Tash|r|cffffd100Guides|r"
 UI.HEADER_H = 24
 
 function UI.IconButton(parent, texture, size, tip, onClick)

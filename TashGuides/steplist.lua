@@ -98,9 +98,9 @@ local function rowTooltip(r)
     end
     if step.note then GameTooltip:AddLine(step.note, 0.6, 0.6, 0.65, true) end
     if r.dynamic then
-        GameTooltip:AddLine("Click: point the arrow here", 0.3, 0.8, 1)
+        GameTooltip:AddLine("Click: point the arrow here", 0.25, 0.85, 0.6)
     else
-        GameTooltip:AddLine("Click: view this step   Right-click: move the guide here", 0.3, 0.8, 1, true)
+        GameTooltip:AddLine("Click: view this step   Right-click: move the guide here", 0.25, 0.85, 0.6, true)
     end
     GameTooltip:Show()
 end

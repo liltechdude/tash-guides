@@ -124,7 +124,7 @@ local function pinTooltip(pin)
         end
         lastQuest = q
     end
-    GameTooltip:AddLine("Click: set waypoint", 0.3, 0.8, 1)
+    GameTooltip:AddLine("Click: set waypoint", 0.25, 0.85, 0.6)
     GameTooltip:Show()
 end
 

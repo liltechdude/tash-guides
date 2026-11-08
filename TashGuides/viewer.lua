@@ -48,8 +48,8 @@ local function goalTooltip(row)
     else
         GameTooltip:AddLine((Guide.GoalText(goal):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")), 1, 1, 1, true)
     end
-    if row.hasLocation then GameTooltip:AddLine("Click: point the arrow here", 0.3, 0.8, 1) end
-    if row.manual then GameTooltip:AddLine("Right-click: mark done / not done", 0.3, 0.8, 1) end
+    if row.hasLocation then GameTooltip:AddLine("Click: point the arrow here", 0.25, 0.85, 0.6) end
+    if row.manual then GameTooltip:AddLine("Right-click: mark done / not done", 0.25, 0.85, 0.6) end
     GameTooltip:Show()
 end
 

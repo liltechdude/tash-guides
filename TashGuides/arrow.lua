@@ -100,7 +100,7 @@ function A.Init()
         local cur = WP.current
         GameTooltip:AddLine(cur and cur.title or "Waypoint", 1, 0.82, 0)
         if cur then GameTooltip:AddLine(("%s  %.1f, %.1f"):format(TG.MapName(cur.map), cur.x * 100, cur.y * 100), 0.8, 0.8, 0.8) end
-        GameTooltip:AddLine("Drag to move. Right-click to clear.", 0.3, 0.8, 1)
+        GameTooltip:AddLine("Drag to move. Right-click to clear.", 0.25, 0.85, 0.6)
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", GameTooltip_Hide)

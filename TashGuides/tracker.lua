@@ -79,7 +79,7 @@ local function rowTooltip(self)
     if type(texts) == "table" then for _, s in ipairs(texts) do GameTooltip:AddLine(s, 1, 1, 1, true) end end
     local f = DB.GiverName(DB.Finishers(self.quest))
     if f then GameTooltip:AddDoubleLine("Turn in to", f, 0.6, 0.6, 0.6, 1, 1, 1) end
-    GameTooltip:AddLine("Click: waypoint   Shift: link   Ctrl: quest log   Right-click: hide", 0.3, 0.8, 1, true)
+    GameTooltip:AddLine("Click: waypoint   Shift: link   Ctrl: quest log   Right-click: hide", 0.25, 0.85, 0.6, true)
     GameTooltip:Show()
 end
 
