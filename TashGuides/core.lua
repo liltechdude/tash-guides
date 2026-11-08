@@ -98,6 +98,7 @@ TG.CHAR_DEFAULTS = {
     untracked = {},     -- quest id -> true (hidden from the tracker)
     history = {},       -- recent { kind = "accept"|"turnin", quest, time } for the steps panel
     smartRoute = { keys = {}, anchors = {} }, -- Smart Guide route in linear mode
+    notOffered = {},    -- quest id -> level: an NPC did not offer it although QuestieDB says it should
 }
 
 local function fill(dst, src)

@@ -2,7 +2,8 @@
 --
 -- At login every QuestieDB quest is classified for this character:
 --   "class"  requiredClasses names this class and leaves out at least one other class
---            (trainer letters, class quest lines);
+--            (trainer letters, class quest lines), or the quest has no class flag but only
+--            trainers of this class hand it out (availability.lua, AV.InferredClass);
 --   "race"   not a class quest, requiredRaces names this race and leaves out at least one
 --            other race of the same faction (racial quest lines).
 -- Each set becomes a guide ("Warrior quests", "Human quests") ordered by level with
@@ -61,7 +62,8 @@ function Chains.Scan()
         local cmask = DB.Quest(qid, "requiredClasses") or 0
         local rmask = DB.Quest(qid, "requiredRaces") or 0
         local kind
-        if classSpecific(cmask) and AV.RaceOk(qid) then kind = "class"
+        if (classSpecific(cmask) or (cmask == 0 and AV.classFile and AV.InferredClass(qid) == AV.classFile))
+            and AV.RaceOk(qid) then kind = "class"
         elseif rmask ~= 0 and raceSpecific(rmask) and AV.ClassOk(qid) then kind = "race" end
         -- Leave out repeatables, profession quests, and quests nobody friendly hands out.
         if kind and (DB.IsRepeatable(qid) or DB.Quest(qid, "requiredSkill") ~= nil or #DB.Starters(qid) == 0

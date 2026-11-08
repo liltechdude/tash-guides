@@ -531,6 +531,60 @@ do
     G.Load(expectGuide)
 end
 
+print("quests the game does not offer")
+do
+    local DBm, AV = TG.DB, TG.Avail
+    local FAKE, TRAINER, GIVER = 990001, 990101, 990102
+    local fake = {
+        [FAKE] = { name = "Chakuyak", questLevel = level, requiredLevel = 1, requiredClasses = 0, requiredRaces = 0,
+            startedBy = { { TRAINER } }, finishedBy = { { TRAINER } } },
+    }
+    local npcs = { [TRAINER] = { name = "Yaw Sharpmane", subName = "Hunter Trainer" },
+        [GIVER] = { name = "Some Giver", subName = "Fishing Trainer" } }
+    local realQuest, realNpc, realExists = DBm.Quest, DBm.Npc, DBm.QuestExists
+    DBm.Quest = function(id, key) if fake[id] then return fake[id][key] end return realQuest(id, key) end
+    DBm.QuestExists = function(id) return fake[id] ~= nil or realExists(id) end
+    DBm.Npc = function(id, key) if npcs[id] then return npcs[id][key] end return realNpc(id, key) end
+    local realFile = AV.classFile
+
+    -- 1. A quest with no class flag that only a Hunter trainer hands out is a hunter quest.
+    AV.classFile = "WARRIOR"
+    check(AV.InferredClass(FAKE) == "HUNTER", "a quest only a Hunter trainer gives is treated as a hunter quest")
+    check(not AV.ClassOk(FAKE), "a warrior is not offered a Hunter trainer's quest")
+    AV.classFile = "HUNTER"
+    check(AV.ClassOk(FAKE), "a hunter still is")
+    AV.classFile = "WARRIOR"
+
+    -- 2. An NPC that does not list a quest the database expects: the guide stops asking for it.
+    local Q2 = FAKE + 1
+    fake[Q2] = { name = "Unlisted Errand", questLevel = level, requiredLevel = 1, requiredClasses = 0, requiredRaces = 0,
+        startedBy = { { GIVER } }, finishedBy = { { GIVER } } }
+    check(AV.InferredClass(Q2) == nil and AV.ClassOk(Q2), "profession trainers do not imply a class")
+    check(TG.Guide.GoalStatus(1, 1, { type = "accept", quest = Q2 }) == "todo", "before talking to the NPC the guide asks for it")
+    AV.byGiver = AV.byGiver or {}
+    AV.byGiver[GIVER] = { Q2 }
+    AV.set[Q2] = { quest = Q2, level = level }
+    local realGossip = _G.C_GossipInfo
+    local offered = { { questID = Q2, title = "Unlisted Errand" } }
+    _G.C_GossipInfo = { GetAvailableQuests = function() return offered end }
+    AV.CheckOffers("GOSSIP_SHOW", GIVER)
+    check(not AV.NotOffered(Q2), "a quest the NPC lists stays available")
+    offered = {}
+    AV.CheckOffers("GOSSIP_SHOW", GIVER)
+    check(AV.NotOffered(Q2) and not AV.IsEligible(Q2), "a quest the NPC does not list is marked not offered")
+    check(TG.Guide.GoalStatus(1, 1, { type = "accept", quest = Q2 }) == "na", "the guide stops asking you to accept it")
+    level = level + 1
+    check(not AV.NotOffered(Q2), "it gets another look after you level up")
+    level = level - 1
+
+    _G.C_GossipInfo = realGossip
+    AV.set[Q2], AV.byGiver[GIVER] = nil, nil
+    TG.char.notOffered[Q2] = nil
+    DBm.Quest, DBm.Npc, DBm.QuestExists = realQuest, realNpc, realExists
+    AV.classFile = realFile
+    pump(40)
+end
+
 print("spawn picking")
 do
     local WP = TG.Way

@@ -1,4 +1,4 @@
-# TashGuides 0.7.0
+# TashGuides 0.7.1
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -66,7 +66,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.7.0 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.7.1 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
@@ -466,6 +466,9 @@ It is hidden inside instances, and when there is no current target. Check **Show
 
 **The arrow keeps pointing at a mob behind me.**
 Raise **Prefer spawns ahead of you** in the options. Set it to 0 if you would rather have the plain nearest spawn.
+
+**The guide asks me to accept a quest the NPC does not offer.**
+QuestieDB occasionally lacks a requirement the game enforces, most often a class: a quest from another class's trainer with no class flag in the data. TashGuides handles both ends of this. A quest whose only givers are trainers of one class (`<Hunter Trainer>`, `<Mage Trainer>`, ...) counts as that class's quest, even when the data has no class flag. And when you open an NPC's quest window, any quest the data says they should have for you but the window does not list is hidden from the guide, pins and Smart Guide, with a chat line saying so. It gets another look each time you level up, in case a level or another requirement was the reason. Grey low-level quests are never judged this way, because the client can hide those itself.
 
 **The guide says a quest "is not in your quest log yet".**
 You have not picked that quest up. Do the earlier goal in the step first.

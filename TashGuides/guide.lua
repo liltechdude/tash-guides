@@ -109,6 +109,8 @@ function Guide.GoalStatus(si, gi, goal)
     if goal.quest then
         local q = goal.quest
         if not AV.ForPlayer(q) then return "na" end
+        -- the quest giver did not list it for this character: do not wait on it
+        if AV.NotOffered(q) and not QL.InLog(q) and not QL.IsCompleted(q) then return "na" end
         if t == "accept" then
             if QL.InLog(q) or QL.IsCompleted(q) then return "done" end
         elseif t == "complete" then
@@ -232,6 +234,7 @@ function Guide.GoalBlocked(goal)
     if ok then return nil end
     if why == "level" then return "requires level " .. (DB.Quest(goal.quest, "requiredLevel") or "?") end
     if why == "prereq" then return "finish the earlier quests first" end
+    if why == "not offered" then return "not offered to you yet" end
     return nil
 end
 
