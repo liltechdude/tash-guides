@@ -98,7 +98,7 @@ end
 
 local function build()
     window = CreateFrame("Frame", "TashGuidesOptions", UIParent, BackdropTemplateMixin and "BackdropTemplate")
-    window:SetSize(500, 620)
+    window:SetSize(500, 660)
     window:SetFrameStrata("DIALOG")
     window:SetPoint("CENTER")
     TG.Skin(window, 0.97)
@@ -137,14 +137,15 @@ local function build()
     slider(window, R, y - 64, "Scale", "arrow.scale", 0.5, 2, 0.05)
     slider(window, R, y - 102, "Arrival distance (yd)", "arrow.arrival", 3, 30, 1, "%d")
     slider(window, R, y - 140, "Prefer spawns ahead of you", "arrow.forwardBias", 0, 5, 0.5, "%.1f")
+    slider(window, R, y - 178, "Objective area size (yd)", "arrow.area", 20, 150, 5, "%d")
 
-    heading(window, R, y - 184, "Quest tracker")
-    checkbox(window, R, y - 202, "Show quest tracker", "tracker.shown")
-    checkbox(window, R, y - 224, "Lock position", "tracker.locked")
-    checkbox(window, R, y - 246, "Hide Blizzard's quest tracker", "tracker.hideBlizzard")
-    slider(window, R, y - 270, "Quests shown", "tracker.max", 3, 25, 1, "%d")
-    slider(window, R, y - 308, "Scale", "tracker.scale", 0.6, 1.6, 0.05)
-    slider(window, R, y - 346, "Opacity", "tracker.alpha", 0.2, 1, 0.05)
+    heading(window, R, y - 222, "Quest tracker")
+    checkbox(window, R, y - 240, "Show quest tracker", "tracker.shown")
+    checkbox(window, R, y - 262, "Lock position", "tracker.locked")
+    checkbox(window, R, y - 284, "Hide Blizzard's quest tracker", "tracker.hideBlizzard")
+    slider(window, R, y - 308, "Quests shown", "tracker.max", 3, 25, 1, "%d")
+    slider(window, R, y - 346, "Scale", "tracker.scale", 0.6, 1.6, 0.05)
+    slider(window, R, y - 384, "Opacity", "tracker.alpha", 0.2, 1, 0.05)
 
     y = -300
     heading(window, L, y, "Map pins")
@@ -159,7 +160,7 @@ local function build()
     slider(window, L, y - 174, "World map pin size", "pins.scale", 0.5, 2, 0.05)
     slider(window, L, y - 212, "Minimap pin size", "pins.minimapScale", 0.5, 2, 0.05)
 
-    local qy = y - 132
+    local qy = y - 170
     heading(window, R, qy, "Quests")
     checkbox(window, R, qy - 18, "Quest info on tooltips", "tooltips", "Show your objectives and available quests when you hover NPCs and objects.")
     checkbox(window, R, qy - 40, "Auto-accept quests", "autoAccept", "Accept quests as soon as an NPC offers them. Hold Shift to skip.")

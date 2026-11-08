@@ -134,7 +134,8 @@ local function pinClick(pin)
     local line = data.lines[1]
     local name = line and (DB.QuestName(line.quest) or "Quest") or "Quest"
     local verb = line and (line.kind == "available" and "Pick up " or line.kind == "turnin" and "Turn in " or "") or ""
-    WP.Set({ map = data.map, x = data.x, y = data.y, source = "pin", title = verb .. name, subtitle = line and line.who })
+    WP.Set({ map = data.map, x = data.x, y = data.y, source = "pin", title = verb .. name, subtitle = line and line.who,
+        quest = line and line.quest, objective = line and line.kind == "objective" or nil })
 end
 
 local function newPin(parent, pool)

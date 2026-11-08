@@ -59,7 +59,7 @@ local function onRowClick(self, button)
     local p = questTarget(id)
     local q = QL.Get(id)
     if p then
-        WP.Set({ map = p.map, x = p.x, y = p.y, source = "tracker",
+        WP.Set({ map = p.map, x = p.x, y = p.y, source = "tracker", quest = id, objective = not (q and q.complete) or nil,
             title = (q and q.title or "Quest") .. (q and q.complete and " (turn in)" or ""),
             subtitle = p.dungeon and (p.dungeon .. " entrance") or nil })
     else

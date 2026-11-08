@@ -1,4 +1,4 @@
-# TashGuides 0.7.1
+# TashGuides 0.8.0
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -35,7 +35,7 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 | **Smart Guide** | Works in any zone without hand-written data. Builds steps from your turn-ins, objectives and nearby quest givers. **Linear** routing (default) plans a fixed route and walks you through it step by step like a written guide; **Nearest** routing re-sorts by distance as you move. Used when no curated guide fits your character. |
 | **Curated guides** | Northshire Valley (Human 1-6) and Valley of Trials (Orc/Troll 1-6). Each continues into the Smart Guide. Quests for other classes are hidden automatically. |
 | **Class & race chains** | Your class quests (trainer letters, class quest lines) and racial quests are found in QuestieDB at login and offered as their own guides, *Warrior quests*, *Human quests* and so on, in level order with prerequisites first. The main guides (zone guides and the Smart Guide) include them too unless you opt out: class crest in the guide header, the checkbox in the guide picker, the option *Include class & race quests*, or `/tg chains`. The Smart Guide offers every class/racial quest you can take wherever its giver is, ranked ahead of ordinary quests at a similar distance. |
-| **Waypoint arrow** | Points to the current goal, colored green to red by heading, with distance in yards and ETA. Shows a check when you arrive. Right-click it to clear a manual waypoint. Targets on other maps (a trainer in a city, a turn-in two zones over) still get a direction and distance. When the current step has nothing to point at (an item-started quest, a note) the arrow points at the next step that does, marked *Next: ...*. For objectives with many spawns it favors spawns ahead of you over ones behind (tunable in options: *Prefer spawns ahead of you*) and moves on from spawns you just cleared. |
+| **Waypoint arrow** | Points to the current goal, colored green to red by heading, with distance in yards and ETA. Shows a check when you arrive at a spot, and an **objective-area** display (colored ring, objective icon, *IN OBJECTIVE AREA* and your progress) once you are among the mobs or nodes a quest needs. Right-click it to clear a manual waypoint. Targets on other maps (a trainer in a city, a turn-in two zones over) still get a direction and distance. When the current step has nothing to point at (an item-started quest, a note) the arrow points at the next step that does, marked *Next: ...*. For objectives with many spawns it favors spawns ahead of you over ones behind (tunable in options: *Prefer spawns ahead of you*) and moves on from spawns you just cleared. |
 | **Quest tracker** | Same look as the guide window. Quests the current guide step works on are grouped first (*Guide step*, with an accent edge), then *This zone* by distance, then *Elsewhere*. Objectives are colored by progress with a progress bar per quest; class/racial quests are tagged. Click: waypoint. Shift: link. Ctrl: quest log. Right-click: hide. |
 | **Map pins** | `!` quests to pick up (blue: repeatable, grey: low level), `?` turn-ins, and colored dots for objectives (red kill, yellow loot, blue object, purple explore). On both the world map and the minimap. Click a pin to set a waypoint. |
 | **Tooltips** | Hover a mob or object to see which of your quests need it and your progress. Hover a quest giver to see what they offer or are waiting for. |
@@ -66,7 +66,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.7.1 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.8.0 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
@@ -227,7 +227,13 @@ The arrow points toward your current target and shows what it is.
 
 - **Direction and color**: the arrow rotates relative to the way your character is facing. It is green when you are heading the right way, passes through yellow, and turns red when you are facing away from the target.
 - **Distance and ETA**: distance in yards (or `1.2k yd` when far), plus an estimated travel time based on your current speed.
-- **Arrival**: when you get close enough, the arrow becomes a green check and says `Arrived`.
+- **Arrival**: when you reach a spot (a quest giver, a hand-in, a go-to point), the arrow becomes a green check and says `Arrived`.
+- **Objective area**: when the target is a quest objective and you are within the objective area (50 yards of the nearest spawn you still need, set with *Objective area size*), the arrow is replaced by:
+  - a pulsing ring in the objective's map-pin color (red kill, yellow loot, blue object, purple explore) around a matching icon;
+  - the quest name and **IN OBJECTIVE AREA**;
+  - your progress on that objective (`Kobold Vermin slain: 3/10`), plus how far the nearest spawn is.
+
+  It switches back to the arrow when you walk out of the area. An objective waypoint you set from the tracker or a map pin stays until the quest is ready to hand in, instead of clearing when you reach the first spawn.
 - **Other zones**: if the target is on another map, the arrow shows the target's direction when the two maps can be lined up, and otherwise says `Travel to` followed by the zone name.
 - **Instances**: inside an instance there is no usable position, so the arrow says so rather than pointing the wrong way.
 - **Dungeon objectives**: objectives that are inside a dungeon point to the dungeon entrance on the outdoor map, and the arrow labels it `... entrance`.
@@ -398,6 +404,7 @@ Open the options with `/tg options`, the gear icon on the guide window, the mini
 | | Lock position | Off | |
 | | Scale | 1.00 | 0.50 to 2.00. |
 | | Arrival distance (yd) | 8 | 3 to 30. How close counts as "arrived". |
+| | Objective area size (yd) | 50 | 20 to 150. How close to the nearest needed spawn shows *IN OBJECTIVE AREA* instead of the arrow. |
 | | Prefer spawns ahead of you | 2.5 | 0 to 5. 0 = always nearest. |
 | **Quest tracker** | Show quest tracker | On | |
 | | Lock position | Off | |

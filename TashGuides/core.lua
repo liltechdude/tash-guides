@@ -69,7 +69,7 @@ end
 
 TG.DEFAULTS = {
     viewer = { shown = true, locked = false, scale = 1.0, alpha = 0.92, upcoming = 2, minimized = false },
-    arrow = { shown = true, locked = false, scale = 1.0, arrival = 8, forwardBias = 2.5 },
+    arrow = { shown = true, locked = false, scale = 1.0, arrival = 8, forwardBias = 2.5, area = 50 },
     tracker = { shown = true, locked = false, scale = 1.0, alpha = 0.85, max = 12, hideBlizzard = false },
     steps = { shown = false },
     pins = {

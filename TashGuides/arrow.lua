@@ -1,12 +1,38 @@
 -- TashGuides arrow.lua: the waypoint arrow (direction, distance, ETA, arrival).
+-- For a quest objective the arrow turns into an objective-area display once you are among
+-- the spawns you still need (TG.db.arrow.area yards of the nearest one): a ring in the
+-- objective's pin color (red kill, yellow loot, blue object, purple explore) around the
+-- matching icon, "IN OBJECTIVE AREA", and your live progress for that objective.
 
 local TG = TashGuides
 local WP = TG.Way
 local A = {}
 TG.Arrow = A
 
-local frame, arrow, check, titleText, distText, hintText
+local frame, arrow, check, titleText, distText, hintText, area
+local QL = TG.QuestLog
 local lastPos, lastTime, speed = nil, nil, 0
+
+local AREA_ICON = {
+    monster = "Interface\\Icons\\Ability_SteelMelee",
+    item = "Interface\\Icons\\INV_Misc_Bag_10",
+    object = "Interface\\Icons\\INV_Misc_Gear_01",
+    event = "Interface\\Icons\\INV_Misc_Map_01",
+}
+local AREA_HINT = { monster = "Kill", item = "Loot", object = "Use / collect", event = "Explore" }
+
+-- Objective-area lookup, recomputed when you move or every half second (it walks spawn lists).
+local areaCache = { at = 0 }
+local function objectiveArea(wp)
+    if not (wp.objective and wp.quest) then return nil end
+    local map, px, py = WP.PlayerPos()
+    local now = GetTime()
+    local c = areaCache
+    if c.wp == wp and c.map == map and c.x == px and c.y == py and now - c.at < 0.5 then return c.info end
+    c.wp, c.map, c.x, c.y, c.at = wp, map, px, py, now
+    c.info = TG.Guide.ObjectiveArea(wp.quest)
+    return c.info
+end
 
 -- Green when on course, through yellow, to red when facing away.
 local function headingColor(rel)
@@ -17,11 +43,53 @@ local function headingColor(rel)
     return 1, 1 - (f - 0.5) * 2, 0.1
 end
 
+-- Enter the area at the configured size; leave only a little further out, so standing on
+-- the edge does not flicker between the two displays.
+local function inArea(info)
+    if not info then return false end
+    local r = TG.db.arrow.area or 50
+    return info.dist <= r or (A.state == "area" and info.dist <= r * 1.25)
+end
+
+local function showArea(wp, info)
+    arrow:Hide()
+    check:Hide()
+    local color = TG.C[info.kind] or TG.C.monster
+    area.ring:SetVertexColor(color[1], color[2], color[3])
+    area.icon:SetTexture(AREA_ICON[info.kind] or AREA_ICON.monster)
+    -- slow pulse so the state is visible at a glance
+    local pulse = 0.65 + 0.35 * math.sin(GetTime() * 3)
+    area.ring:SetAlpha(pulse)
+    area.glow:SetVertexColor(color[1], color[2], color[3])
+    area.glow:SetAlpha(0.25 * pulse)
+    area:Show()
+    titleText:SetText(info.title or wp.title or "Objective")
+    distText:SetText(TG.Color(color, "IN OBJECTIVE AREA"))
+    local o = info.objective
+    local what
+    if o and o.text and o.text ~= "" then
+        what = TG.Color(TG.UI.ProgressColor(o), o.text)
+    else
+        what = AREA_HINT[info.kind] or "Objective"
+    end
+    local near = info.dist > (TG.db.arrow.arrival or 8)
+        and TG.Color(TG.C.muted, "  -  nearest " .. TG.FormatDistance(info.dist)) or ""
+    hintText:SetText(what .. near)
+    if A.state ~= "area" and TG.db.sounds and PlaySound and SOUNDKIT and SOUNDKIT.MAP_PING then
+        PlaySound(SOUNDKIT.MAP_PING)
+    end
+    A.state = "area"
+end
+
 local function update()
     local wp = WP.current
-    if not wp or not TG.db.arrow.shown then frame:Hide() return end
+    if not wp or not TG.db.arrow.shown then frame:Hide() A.state = nil return end
     frame:Show()
     titleText:SetText(wp.title or "Waypoint")
+
+    local info = objectiveArea(wp)
+    if inArea(info) then showArea(wp, info) return end
+    area:Hide()
 
     local yards, bearing = WP.VectorTo(wp.map, wp.x, wp.y)
     if not yards then
@@ -31,6 +99,7 @@ local function update()
         local pmap = WP.PlayerMap()
         if not pmap then hintText:SetText("No position here (instance)")
         else hintText:SetText("Travel to " .. TG.Color(TG.C.gold, TG.MapName(wp.map))) end
+        A.state = "travel"
         return
     end
 
@@ -54,10 +123,12 @@ local function update()
     if yards <= radius then
         arrow:Hide()
         check:Show()
-        distText:SetText(TG.Color(TG.C.good, "Arrived"))
+        distText:SetText(TG.Color(TG.C.good, wp.objective and "At the objective" or "Arrived"))
         hintText:SetText(wp.subtitle or "")
+        A.state = "arrived"
         return
     end
+    A.state = "arrow"
     check:Hide()
     arrow:Show()
 
@@ -110,6 +181,23 @@ function A.Init()
     arrow:SetPoint("TOP", 0, -2)
     arrow:SetTexture(TG.TEX.arrow)
 
+    -- objective-area display: tinted ring, soft glow, objective icon
+    area = CreateFrame("Frame", nil, frame)
+    area:SetSize(56, 56)
+    area:SetPoint("TOP", 0, -2)
+    area.glow = area:CreateTexture(nil, "BACKGROUND")
+    area.glow:SetSize(64, 64)
+    area.glow:SetPoint("CENTER")
+    area.glow:SetTexture(TG.TEX.dot)
+    area.ring = area:CreateTexture(nil, "ARTWORK")
+    area.ring:SetAllPoints()
+    area.ring:SetTexture(TG.TEX.target)
+    area.icon = area:CreateTexture(nil, "OVERLAY")
+    area.icon:SetSize(24, 24)
+    area.icon:SetPoint("CENTER")
+    area.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    area:Hide()
+
     check = frame:CreateTexture(nil, "ARTWORK")
     check:SetSize(40, 40)
     check:SetPoint("TOP", 0, -10)
@@ -137,6 +225,15 @@ function A.Init()
 
     -- The OnUpdate stops while hidden, so wake the arrow when a waypoint appears.
     TG.On("TG_WAYPOINT", A.Refresh)
+    -- A tracker / map-pin objective waypoint stays while you work the area; drop it once the
+    -- quest is ready to hand in (or gone), and hand the arrow back to the guide.
+    TG.On("TG_QUESTLOG", function()
+        local cur = WP.current
+        if cur and cur.objective and cur.quest and cur.source ~= "guide"
+            and (not QL.InLog(cur.quest) or QL.IsReady(cur.quest)) then
+            WP.Clear(cur.source)
+        end
+    end)
     TG.On("TG_SETTINGS", A.Refresh)
     A.Refresh()
 end

@@ -265,6 +265,30 @@ function Guide.ObjectivePoints(q)
     return pts
 end
 
+-- The unfinished objective of an in-progress quest whose spawns are nearest to the player:
+-- { quest, title, dist (yards to its nearest spawn), kind ("monster"|"item"|"object"|"event"),
+--   objective (the quest log line, with text/have/need), point } or nil.
+function Guide.ObjectiveArea(q)
+    local entry = QL.Get(q)
+    if not entry or entry.complete then return nil end
+    local matched, sources = DB.MatchObjectives(q, entry.objectives)
+    local best
+    local function consider(points, kind, o)
+        local p, d = WP.Nearest(points)
+        if p and d and (not best or d < best.dist) then best = { dist = d, kind = kind, objective = o, point = p } end
+    end
+    if #entry.objectives == 0 then
+        for _, s in ipairs(sources) do consider(s.points, s.kind, nil) end
+    else
+        for i, lo in ipairs(entry.objectives) do
+            local s = matched[i]
+            if s and not lo.finished then consider(s.points, s.kind, lo) end
+        end
+    end
+    if best then best.quest, best.title = q, entry.title end
+    return best
+end
+
 -- Where a goal sends the player: returns a point or nil.
 function Guide.GoalLocation(goal)
     local t = goal.type
@@ -296,6 +320,8 @@ function Guide.WaypointFor(si, gi, goal)
         subtitle = p.dungeon and (p.dungeon .. " entrance") or (step and step.title),
         source = "guide",
         radius = goal.radius,
+        quest = goal.quest,
+        objective = goal.type == "complete" or nil,
         onArrive = goal.type == "goto" and function()
             if Guide.active and not Guide.active.dynamic then TG.char.manual[goalKey(si, gi)] = true end
             goal.done = true

@@ -309,7 +309,8 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Active waypoint
--- wp = { map, x, y, title, subtitle?, source = "guide"|"manual"|"tracker"|"pin", key?, onArrive? }
+-- wp = { map, x, y, title, subtitle?, source = "guide"|"manual"|"tracker"|"pin", key?, onArrive?,
+--        quest?, objective? (true: a quest objective - the arrow shows the objective area) }
 -- A manual/tracker/pin waypoint wins over the guide's until it is reached or cleared.
 -- ---------------------------------------------------------------------------
 
@@ -361,7 +362,9 @@ function WP.CheckArrival(yards)
             local ok, err = pcall(cur.onArrive, cur)
             if not ok then TG.Report(err) end
         end
-        if cur.source ~= "guide" then
+        -- A spot you picked is done once reached. An objective is not: the mobs or nodes are
+        -- spread around, so it stays (as the objective area) until the quest is ready.
+        if cur.source ~= "guide" and not cur.objective then
             if TG.db.sounds and PlaySound and SOUNDKIT and SOUNDKIT.MAP_PING then PlaySound(SOUNDKIT.MAP_PING) end
             WP.Clear(cur.source)
         end

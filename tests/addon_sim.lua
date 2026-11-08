@@ -585,6 +585,46 @@ do
     pump(40)
 end
 
+print("objective area on the arrow")
+do
+    local WP, QLm, DBm, A = TG.Way, TG.QuestLog, TG.DB, TG.Arrow
+    local M, FAKE = player.map, 990201
+    local saved = { quests = QLm.quests, obj = DBm.Objectives, x = player.x, y = player.y }
+    QLm.quests = { [FAKE] = { id = FAKE, title = "Kobold Trouble", level = 1, complete = false,
+        objectives = { { text = "Kobold Vermin slain: 3/10", finished = false, have = 3, need = 10 } } } }
+    DBm.Objectives = function(q)
+        if q == FAKE then return { { kind = "monster", name = "Kobold Vermin", npcs = {}, objects = {},
+            points = { { map = M, x = 0.50, y = 0.45 }, { map = M, x = 0.52, y = 0.45 } } } } end
+        return saved.obj(q)
+    end
+    local function arrowState() pump(2) return A.state end
+
+    player.x, player.y = 0.50, 0.50                         -- 135 yd south of the camp
+    WP.Set({ map = M, x = 0.50, y = 0.45, source = "tracker", quest = FAKE, objective = true, title = "Kobold Trouble" })
+    check(arrowState() == "arrow", "far from the objective the arrow points the way (" .. tostring(A.state) .. ")")
+    player.x, player.y = 0.50, 0.465                        -- ~40 yd out: among the spawns
+    check(arrowState() == "area", "inside the objective area the arrow shows the area display (" .. tostring(A.state) .. ")")
+    player.x, player.y = 0.50, 0.471                        -- ~57 yd: just past the edge, still inside the margin
+    check(arrowState() == "area", "the area display does not flicker at the edge")
+    player.x, player.y = 0.50, 0.45                         -- standing on a spawn
+    WP.CheckArrival(0)
+    check(WP.current and WP.current.source == "tracker", "reaching one spawn does not clear an objective waypoint")
+    check(arrowState() == "area", "standing on a spawn still shows the objective area, not a check mark")
+    player.x, player.y = 0.50, 0.55                         -- walk well away
+    check(arrowState() == "arrow", "leaving the area brings the arrow back")
+    QLm.quests[FAKE].complete = true
+    TG.Fire("TG_QUESTLOG", false)
+    check(WP.current == nil or WP.current.source ~= "tracker", "the objective waypoint clears once the quest is ready")
+
+    WP.Set({ map = M, x = 0.50, y = 0.55, source = "manual", title = "spot" })
+    check(arrowState() == "arrived", "a plain waypoint still shows the arrival check")
+    WP.Clear("manual")
+
+    QLm.quests, DBm.Objectives = saved.quests, saved.obj
+    player.x, player.y = saved.x, saved.y
+    pump(10)
+end
+
 print("spawn picking")
 do
     local WP = TG.Way
