@@ -189,6 +189,16 @@ function WP.VectorTo(map, x, y)
     return math.sqrt(east * east + south * south), math.atan2(east, -south)
 end
 
+-- Yards between two points (any maps on the same continent), or nil.
+function WP.Between(a, b)
+    if not (a and b) then return nil end
+    local bx, by = WP.Translate(b.map, b.x, b.y, a.map)
+    local size = bx and WP.MapSize(a.map)
+    if not size then return nil end
+    local dx, dy = (bx - a.x) * size[1], (by - a.y) * size[2]
+    return math.sqrt(dx * dx + dy * dy)
+end
+
 function WP.DistanceTo(p)
     if not p then return nil end
     return (WP.VectorTo(p.map, p.x, p.y))

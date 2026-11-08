@@ -97,7 +97,9 @@ local function rowTooltip(r)
         end
     end
     if step.note then GameTooltip:AddLine(step.note, 0.6, 0.6, 0.65, true) end
-    if r.dynamic then
+    if r.dynamic and Guide.Ordered() then
+        GameTooltip:AddLine("Click: point the arrow here   Right-click: do this next", 0.25, 0.85, 0.6, true)
+    elseif r.dynamic then
         GameTooltip:AddLine("Click: point the arrow here", 0.25, 0.85, 0.6)
     else
         GameTooltip:AddLine("Click: view this step   Right-click: move the guide here", 0.25, 0.85, 0.6, true)
@@ -108,6 +110,10 @@ end
 local function onRowClick(r, button)
     if r.history then return end
     if r.dynamic then
+        if (button == "RightButton" or IsShiftKeyDown()) and Guide.Ordered() then
+            TG.Smart.Promote(r.si)
+            return
+        end
         local step = Guide.Steps()[r.si]
         for gi, goal in ipairs(step and step.goals or {}) do
             local wp = Guide.WaypointFor(r.si, gi, goal)
@@ -294,13 +300,18 @@ local function renderFixed(g, steps)
 end
 
 local function renderDynamic(g, steps)
-    local y = addLabel(0, "LINED UP (NEAREST FIRST)")
+    local linear = Guide.Ordered()
+    local y = addLabel(0, linear and "ROUTE (IN ORDER)" or "LINED UP (NEAREST FIRST)")
     for si, step in ipairs(steps) do
         local sub = stepSummary(si, step)
         local first = step.goals[1]
         y = addRow(y, step.title or (si == 1 and "Nearest" or ("Task " .. si)), sub, {
             state = si == 1 and "current" or "todo", si = si, dynamic = true, num = tostring(si),
             icon = first and GOAL_ICON[first.type], iconColor = first and first.type == "complete" and TG.C.monster or nil })
+    end
+    local more = TG.Smart and TG.Smart.more or 0
+    if linear and more > 0 then
+        y = addRow(y, TG.Color(TG.C.muted, ("+%d more stop%s later in the route"):format(more, more == 1 and "" or "s")), nil, { state = "todo" })
     end
     local h = TG.char.history or {}
     if #h > 0 then
@@ -312,7 +323,9 @@ local function renderDynamic(g, steps)
                 { state = "done", history = e, icon = e.kind == "turnin" and TG.TEX.turnin or TG.TEX.available })
         end
     end
-    summary:SetText(TG.Color(TG.C.gold, g.title) .. TG.Color(TG.C.muted, "   tasks are rebuilt as you move  -  click: arrow"))
+    summary:SetText(TG.Color(TG.C.gold, g.title) .. TG.Color(TG.C.muted, linear
+        and "   fixed route  -  click: arrow  -  right-click: do next"
+        or "   re-sorted as you move  -  click: arrow"))
     return y, 0
 end
 

@@ -477,6 +477,60 @@ do
     G.Load(expectGuide)
 end
 
+print("smart guide routing")
+do
+    local G, Smart, QLm = TG.Guide, TG.Smart, TG.QuestLog
+    local M = player.map
+    local saved = { quests = QLm.quests, op = G.ObjectivePoints, forMap = TG.Avail.ForMap,
+        chains = TG.db.includeChains, mode = TG.db.smartRouting, x = player.x, y = player.y }
+    local spots = { [900001] = { 0.30, 0.50 }, [900002] = { 0.60, 0.50 }, [900003] = { 0.63, 0.53 }, [900004] = { 0.33, 0.52 } }
+    local function quest(id) return { id = id, title = "Q" .. id, level = 1, complete = false,
+        objectives = { { text = "Thing slain: 0/5", finished = false, have = 0, need = 5 } } } end
+    QLm.quests = { [900001] = quest(900001), [900002] = quest(900002), [900003] = quest(900003) }
+    G.ObjectivePoints = function(q) local s = spots[q] return s and { { map = M, x = s[1], y = s[2] } } or {} end
+    TG.Avail.ForMap = function() return {} end
+    TG.db.includeChains = false
+    local function head() local s = G.Steps()[1] return s and s.goals[1] and s.goals[1].quest end
+
+    TG.db.smartRouting = "linear"
+    player.x, player.y = 0.32, 0.50
+    G.Load("SMART")
+    Smart.Reroute()
+    check(head() == 900001, "linear: the route starts at the nearest task (" .. tostring(head()) .. ")")
+    player.x, player.y = 0.61, 0.50          -- wander over to another quest's spawns
+    G.Evaluate()
+    check(head() == 900001, "linear: the current step holds while you wander off (" .. tostring(head()) .. ")")
+    QLm.quests[900004] = quest(900004)       -- pick up a new quest right next to the first one
+    G.Evaluate()
+    check(head() == 900001, "linear: a new quest is slotted in behind the current step")
+    local order = {}
+    for i, k in ipairs(TG.char.smartRoute.keys) do order[i] = k end
+    print("    route: " .. table.concat(order, ", "))
+    check(order[2] == "complete:900004", "linear: the new quest goes where it adds the least walking")
+    QLm.quests[900001].complete = true       -- finish the current step's objectives
+    G.Evaluate()
+    check(head() == 900004, "linear: finishing the step moves on to the next stop in the route (" .. tostring(head()) .. ")")
+    G.Next()
+    check(head() ~= 900004 and TG.char.smartRoute.keys[#TG.char.smartRoute.keys] == "complete:900004", "linear: > skips the step to the end of the route")
+
+    Smart.SetMode("nearest")
+    QLm.quests[900001].complete = false
+    G.Evaluate()
+    check(head() == 900002, "nearest: the nearest task leads (" .. tostring(head()) .. ")")
+    player.x, player.y = 0.616, 0.515        -- now a little closer to 900003 than to 900002
+    G.Evaluate()
+    check(head() == 900002, "nearest: the leader is sticky between two tasks at about the same distance")
+    player.x, player.y = 0.30, 0.50
+    G.Evaluate()
+    check(head() == 900001, "nearest: a clearly closer task takes over (" .. tostring(head()) .. ")")
+
+    QLm.quests, G.ObjectivePoints, TG.Avail.ForMap = saved.quests, saved.op, saved.forMap
+    TG.db.includeChains, TG.db.smartRouting = saved.chains, saved.mode
+    player.x, player.y = saved.x, saved.y
+    Smart.Reroute()
+    G.Load(expectGuide)
+end
+
 print("spawn picking")
 do
     local WP = TG.Way

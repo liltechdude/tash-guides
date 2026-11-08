@@ -1,4 +1,4 @@
-# TashGuides 0.6.0
+# TashGuides 0.7.0
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -32,7 +32,7 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 |---|---|
 | **Guide window** | The current step's goals (accept, complete, turn in, go to, talk to...) with checkmarks and objective progress. Moves to the next step when every goal is done. Shows a few upcoming steps and a progress bar. `<` / `>` browse earlier and later steps without moving the guide; click the step bar to return to the current one. |
 | **Steps panel** | The note icon in the guide window header (or `/tg steps`). Every step of the guide: earlier steps (done), the current one and what is coming up, with per-step goal counts. Click a step to view it, right-click to move the guide there. For the Smart Guide it lists every task lined up plus your recent quest activity. |
-| **Smart Guide** | Works in any zone without hand-written data. Builds steps live from the turn-ins, objectives and quest givers nearest to you. Used when no curated guide fits your character. |
+| **Smart Guide** | Works in any zone without hand-written data. Builds steps from your turn-ins, objectives and nearby quest givers. **Linear** routing (default) plans a fixed route and walks you through it step by step like a written guide; **Nearest** routing re-sorts by distance as you move. Used when no curated guide fits your character. |
 | **Curated guides** | Northshire Valley (Human 1-6) and Valley of Trials (Orc/Troll 1-6). Each continues into the Smart Guide. Quests for other classes are hidden automatically. |
 | **Class & race chains** | Your class quests (trainer letters, class quest lines) and racial quests are found in QuestieDB at login and offered as their own guides, *Warrior quests*, *Human quests* and so on, in level order with prerequisites first. The main guides (zone guides and the Smart Guide) include them too unless you opt out: class crest in the guide header, the checkbox in the guide picker, the option *Include class & race quests*, or `/tg chains`. The Smart Guide offers every class/racial quest you can take wherever its giver is, ranked ahead of ordinary quests at a similar distance. |
 | **Waypoint arrow** | Points to the current goal, colored green to red by heading, with distance in yards and ETA. Shows a check when you arrive. Right-click it to clear a manual waypoint. Targets on other maps (a trainer in a city, a turn-in two zones over) still get a direction and distance. When the current step has nothing to point at (an item-started quest, a note) the arrow points at the next step that does, marked *Next: ...*. For objectives with many spawns it favors spawns ahead of you over ones behind (tunable in options: *Prefer spawns ahead of you*) and moves on from spawns you just cleared. |
@@ -66,7 +66,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.6.0 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.7.0 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
@@ -126,7 +126,7 @@ For curated guides the step bar shows `Step 4/23` and the step's title, with arr
 - **Left arrow**: look back at the previous step without losing your place. The label shows `(viewing)` in red while you are looking at an earlier step. Press the right arrow to walk back forward to where you actually are.
 - **Right arrow**: go forward. Use it to confirm a step that only contains notes, or to move ahead manually. **Shift-click** skips the current step. When you have finished a guide, the right arrow loads the next guide.
 
-The Smart Guide has no step navigation. It rebuilds itself as you move, so the arrows are hidden.
+For the Smart Guide the step bar has a **Linear / Nearest** button that switches routing (see [Smart Guide](#smart-guide)). In linear routing the label reads `Route  12 stops left` and the right arrow **skips** the current step to the end of the route; **Shift-click** plans the route again from where you stand. In nearest routing the arrows are hidden.
 
 ### Goals
 
@@ -193,15 +193,23 @@ The picker only lists guides that suit your character's faction and race.
 
 ### Smart Guide
 
-The Smart Guide is a live to-do list that works anywhere, for any race, class and level. Every few seconds it looks at your quest log and your surroundings and builds up to eight steps:
+The Smart Guide works anywhere, for any race, class and level. It looks at your quest log and your surroundings and finds:
 
 - **Turn-ins**: quests you have finished, at the nearest hand-in NPC.
-- **Objectives**: the closest remaining objectives for quests you are on.
+- **Objectives**: remaining objectives for quests you are on.
 - **Pick-ups**: quests you are eligible for on your current map, from nearby quest givers, as long as the quest's level is no more than three above your own.
 
-Tasks are ordered by distance, with turn-ins and pick-ups weighted slightly in your favor so that you hand in and grab quests when you are passing by. Tasks that are within about 30 yards of each other (for example one NPC who takes and gives several quests) are grouped into a single step. Within a step it lists turn-ins first, then objectives, then pick-ups.
+How those tasks are ordered depends on the **routing**, switched with the **Linear / Nearest** button on the step bar, the option *Linear Smart route*, or `/tg route linear` / `/tg route nearest`.
 
-The window is headed `Nearby tasks`, and each step is labeled with its distance, such as `140 yd away`. If there is nothing nearby it tells you to explore toward a town or pick a zone guide.
+**Linear (default)** works like a written guide. The first time, it plans a route nearest-next from where you stand. After that the order is fixed: the current step stays the current step until every goal in it is done, however far you wander or whichever other quest's mobs you pass. New tasks are slotted into the route where they add the least walking, never ahead of the step you are on: a quest you just picked up, or an objective that has turned into a hand-in. Stops are remembered by place, so the route does not reshuffle as the arrow picks different spawns. The route is saved per character and survives a reload.
+
+- The right arrow (or `/tg route skip`) skips the current step to the end of the route.
+- Right-click a stop in the Steps panel (`/tg steps`) to do it next.
+- Shift-click the right arrow (or `/tg route reset`) to plan the whole route again from where you are now, for example after a hearth or a flight.
+
+**Nearest** re-sorts every few seconds by distance, with turn-ins and pick-ups weighted slightly in your favor so you hand in and grab quests when you pass by. The leading task is sticky: another task has to be clearly closer (about a third) before it takes over, so the guide does not flip between two quests at a similar distance.
+
+In both modes, tasks within about 30 yards of each other (for example one NPC who takes and gives several quests) share a step, and a step lists turn-ins first, then objectives, then pick-ups. In linear routing only stops next to each other in the route are merged, so the order holds. Steps are labeled with their distance (`Route 3 - 140 yd away` in linear routing). If there is nothing to do it tells you to explore toward a town or pick a zone guide.
 
 The Smart Guide only suggests quests you can actually accept right now. It applies the same eligibility rules as the map pins (see [Which quests get a `!`](#which-quests-get-a-)).
 
@@ -358,6 +366,9 @@ The commands are `/tg` and `/tashguides` (they are the same).
 | `/tg next` | Next step (confirms a notes-only step, or moves ahead manually). |
 | `/tg prev` | Look back at the previous step. |
 | `/tg skip` | Skip the current step. |
+| `/tg route linear` / `/tg route nearest` | Smart Guide routing: a fixed route step by step, or nearest task first. |
+| `/tg route skip` | Smart Guide (linear): move the current step to the end of the route. |
+| `/tg route reset` | Smart Guide (linear): plan the route again from where you stand. |
 | `/tg arrow` | Show or hide the waypoint arrow. |
 | `/tg tracker` | Show or hide the quest tracker. |
 | `/tg way 45.2 61.8 [note]` | Set a waypoint at those coordinates (0-100) on the map you are standing on. The note is an optional label. |
@@ -378,6 +389,7 @@ Open the options with `/tg options`, the gear icon on the guide window, the mini
 | **Guide window** | Show guide window | On | |
 | | Lock position | Off | |
 | | Advance steps automatically | On | When off, use the right arrow or `/tg next`. |
+| | Linear Smart route | On | Smart Guide routing. On: a fixed route followed step by step. Off: nearest task first, re-sorted as you move. |
 | | Sounds | On | Controls every TashGuides sound: step advance, quest ready, waypoint reached. |
 | | Upcoming steps shown | 2 | 0 to 5. |
 | | Scale | 1.00 | 0.60 to 1.60. |

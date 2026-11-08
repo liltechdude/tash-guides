@@ -301,6 +301,14 @@ function Guide.WaypointFor(si, gi, goal)
     }
 end
 
+-- Does the active guide follow a fixed order (written guides, the Smart Guide's linear route)?
+function Guide.Ordered()
+    local g = Guide.active
+    if not g then return false end
+    if not g.dynamic then return true end
+    return g.id == "SMART" and TG.Smart and TG.Smart.Mode() == "linear"
+end
+
 -- Steps after the current one the arrow may borrow a target from.
 local LOOKAHEAD = 4
 
@@ -321,7 +329,7 @@ function Guide.UpdateWaypoint()
                 if Guide.GoalStatus(s, gi, goal) == "todo" then
                     local wp = Guide.WaypointFor(s, gi, goal)
                     if wp then
-                        if s ~= si and not dynamic then
+                        if s ~= si and Guide.Ordered() then
                             wp.subtitle = "Next: " .. (step.title or ("step " .. s))
                             wp.ahead = true
                         end
@@ -416,7 +424,10 @@ end
 function Guide.Next()
     local g = Guide.active
     if not g then return end
-    if g.dynamic then Guide.Evaluate() return end
+    if g.dynamic then
+        if g.id == "SMART" and TG.Smart.Mode() == "linear" then TG.Smart.Skip() else Guide.Evaluate() end
+        return
+    end
     local steps = Guide.Steps()
     if Guide.view then
         -- browsing: step forward through the guide, back to live when the cursor is reached
@@ -453,7 +464,11 @@ end
 
 function Guide.Skip()
     local g = Guide.active
-    if not g or g.dynamic then return end
+    if not g then return end
+    if g.dynamic then
+        if g.id == "SMART" then TG.Smart.Reroute() end
+        return
+    end
     TG.char.skipped[stepKey(Guide.cursor)] = true
     Guide.view = nil
     local steps = Guide.Steps()

@@ -122,6 +122,10 @@ local function build()
     local chains = checkbox(window, L, y - 84, "Include class & race quests", "includeChains",
         "Class trainer and racial quest chains inside the main guides (zone guides and the Smart Guide). They are also available as their own guides from the guide picker.")
     chains:SetScript("OnClick", function(self) TG.Guide.SetChainsIncluded(self:GetChecked() and true or false) end)
+    local route = checkbox(window, L + 110, y - 106, "Linear Smart route", "smartRouting",
+        "On: the Smart Guide follows a fixed route step by step, like a written guide, and only moves on when the current step is done. Off: it re-sorts by distance as you move, nearest task first.")
+    route:SetScript("OnClick", function(self) TG.Smart.SetMode(self:GetChecked() and "linear" or "nearest") end)
+    route.Sync = function(self) self:SetChecked(TG.Smart.Mode() == "linear") end
     checkbox(window, L, y - 106, "Sounds", "sounds")
     slider(window, L, y - 130, "Upcoming steps shown", "viewer.upcoming", 0, 5, 1, "%d")
     slider(window, L, y - 168, "Scale", "viewer.scale", 0.6, 1.6, 0.05)

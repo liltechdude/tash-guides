@@ -200,8 +200,14 @@ function V.Refresh()
     local finished = Guide.Finished()
     local done, total = Guide.Progress()
 
+    local linear = g and g.dynamic and Guide.Ordered()
     if g and g.dynamic then
-        stepLabel:SetText(TG.Color(TG.C.accent, "Nearby tasks") .. TG.Color(TG.C.muted, "  (" .. #steps .. ")"))
+        local n = TG.Smart and TG.Smart.count or #steps
+        if linear then
+            stepLabel:SetText(TG.Color(TG.C.accent, "Route") .. TG.Color(TG.C.muted, ("  %d stop%s left"):format(n, n == 1 and "" or "s")))
+        else
+            stepLabel:SetText(TG.Color(TG.C.accent, "Nearest first") .. TG.Color(TG.C.muted, "  (" .. n .. ")"))
+        end
     elseif finished then
         stepLabel:SetText(TG.Color(TG.C.good, "Guide complete"))
     else
@@ -214,8 +220,14 @@ function V.Refresh()
         if step and step.title then label = label .. "  " .. TG.Color(TG.C.gold, step.title) end
         stepLabel:SetText(label)
     end
+    local smart = g and g.id == "SMART"
     stepBar.prev:SetShown(g and not g.dynamic)
-    stepBar.next:SetShown(g and not g.dynamic)
+    stepBar.next:SetShown(g and (not g.dynamic or linear))
+    stepBar.mode:SetShown(smart and true or false)
+    stepBar.mode.text:SetText(linear and "Linear" or "Nearest")
+    stepLabel:ClearAllPoints()
+    stepLabel:SetPoint("LEFT", smart and stepBar.mode or stepBar.prev, "RIGHT", smart and 6 or 2, 0)
+    stepLabel:SetPoint("RIGHT", stepBar.next, "LEFT", -2, 0)
 
     local y = 0
     if db.minimized then
@@ -440,12 +452,35 @@ function V.Init()
     stepBar:SetHeight(22)
     stepBar.prev = iconButton(stepBar, "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up", 22, "Previous step", Guide.Prev)
     stepBar.prev:SetPoint("LEFT", 2, 0)
-    stepBar.next = iconButton(stepBar, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Next step (Shift: skip)", function()
+    stepBar.next = iconButton(stepBar, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, function()
+        if Guide.active and Guide.active.dynamic then
+            return { "Skip this step", "Moves it to the end of the route.", "Shift-click: plan the route again from here." }
+        end
+        return "Next step (Shift: skip)"
+    end, function()
         if IsShiftKeyDown() then Guide.Skip()
         elseif Guide.Finished() and Guide.active.next then Guide.Load(Guide.active.next)
         else Guide.Next() end
     end)
     stepBar.next:SetPoint("RIGHT", -2, 0)
+    -- Smart Guide routing: a fixed route followed step by step, or nearest task first.
+    stepBar.mode = textButton(stepBar, "Linear", 58, function()
+        TG.Smart.SetMode(TG.Smart.Mode() == "linear" and "nearest" or "linear")
+    end)
+    stepBar.mode:SetHeight(18)
+    stepBar.mode:SetPoint("LEFT", 4, 0)
+    stepBar.mode:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        local linear = TG.Smart.Mode() == "linear"
+        GameTooltip:AddLine("Routing: " .. (linear and "Linear" or "Nearest first"), 1, 1, 1)
+        GameTooltip:AddLine(linear and "Follows a fixed route step by step, like a written guide. The current step stays until it is done; new quests are slotted into the route."
+            or "Re-sorts by distance as you move, so the nearest task always leads.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Click to switch to " .. (linear and "nearest first." or "linear."), 0.25, 0.85, 0.6)
+        GameTooltip:Show()
+    end)
+    stepBar.mode:SetScript("OnLeave", GameTooltip_Hide)
+    stepBar.mode:Hide()
+
     -- Clicking the step bar returns from a viewed step to the live one.
     local back = CreateFrame("Button", nil, stepBar)
     back:SetPoint("LEFT", stepBar.prev, "RIGHT", 2, 0)

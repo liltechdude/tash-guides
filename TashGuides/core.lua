@@ -81,6 +81,7 @@ TG.DEFAULTS = {
     tooltips = true,
     autoAdvance = true,
     includeChains = true,   -- class & race quest chains inside the main guides (opt-out)
+    smartRouting = "linear", -- Smart Guide order: "linear" (fixed route) or "nearest" (live)
     autoAccept = false,
     autoTurnIn = false,
     sounds = true,
@@ -96,6 +97,7 @@ TG.CHAR_DEFAULTS = {
     done = {},          -- quest id -> true (turn-ins seen this character, backup for the API)
     untracked = {},     -- quest id -> true (hidden from the tracker)
     history = {},       -- recent { kind = "accept"|"turnin", quest, time } for the steps panel
+    smartRoute = { keys = {}, anchors = {} }, -- Smart Guide route in linear mode
 }
 
 local function fill(dst, src)
@@ -297,6 +299,8 @@ local HELP = {
     "/tg steps          past and upcoming steps",
     "/tg class | race    open your class / racial quest chain",
     "/tg chains          include or hide class & race quests in the main guides",
+    "/tg route linear | nearest   Smart Guide: fixed route or nearest-first",
+    "/tg route reset | skip       plan the route again / skip the current step",
     "/tg arrow | tracker toggle the arrow / quest tracker",
     "/tg way 45.2 61.8 [note]  set a waypoint on your current map",
     "/tg clear           clear the waypoint",
@@ -329,6 +333,19 @@ SlashCmdList["TASHGUIDES"] = function(msg)
     elseif cmd == "class" or cmd == "race" then
         local id = cmd == "class" and "CHAIN_CLASS" or "CHAIN_RACE"
         if TG.Guide.registry[id] then TG.Guide.Load(id) else TG.Print("no %s quests found for this character", cmd) end
+    elseif cmd == "route" then
+        local arg = (rest or ""):lower()
+        if arg == "linear" or arg == "nearest" then
+            TG.Smart.SetMode(arg)
+            TG.Print("Smart Guide routing: %s", arg == "linear" and "fixed route, step by step" or "nearest task first")
+        elseif arg == "reset" or arg == "reroute" then
+            TG.Smart.Reroute()
+            TG.Print("Smart Guide route planned again from here")
+        elseif arg == "skip" then
+            TG.Smart.Skip()
+        else
+            TG.Print("Smart Guide routing is %s. Usage: /tg route linear | nearest | reset | skip", TG.Smart.Mode())
+        end
     elseif cmd == "chains" then
         local on = not TG.Guide.ChainsIncluded()
         TG.Guide.SetChainsIncluded(on)
