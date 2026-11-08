@@ -3,6 +3,7 @@
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
 
+<img width="1330" height="903" alt="TashGuidesForeverScreenshot" src="https://github.com/user-attachments/assets/a229434a-49a5-4aac-9596-1a89a613e8d0" />
 
 
 ## Contents
