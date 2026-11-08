@@ -262,6 +262,17 @@ function TG.Skin(frame, alpha)
     frame:SetBackdropBorderColor(0.15, 0.24, 0.20, 1)
 end
 
+-- Pin a frame by its top-left corner where it stands now, so a height change (collapsing the
+-- tracker, minimizing the guide) moves the bottom edge and the header stays put. WoW may
+-- re-anchor a dragged frame by its bottom or center, which would make it shrink downward.
+function TG.AnchorTop(frame, key)
+    local left, top = frame:GetLeft(), frame:GetTop()
+    if type(left) ~= "number" or type(top) ~= "number" then return end
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    if key then TG.db.positions[key] = { "TOPLEFT", "BOTTOMLEFT", left, top } end
+end
+
 -- Remember where the player dragged a frame.
 function TG.MakeMovable(frame, key, lockedFn)
     frame:SetMovable(true)
@@ -276,6 +287,7 @@ function TG.MakeMovable(frame, key, lockedFn)
         self:StopMovingOrSizing()
         local point, _, relPoint, x, y = self:GetPoint(1)
         TG.db.positions[key] = { point, relPoint, x, y }
+        TG.AnchorTop(self, key)
     end)
 end
 
@@ -284,6 +296,8 @@ function TG.RestorePosition(frame, key, point, relPoint, x, y)
     frame:ClearAllPoints()
     if p and p[1] then
         frame:SetPoint(p[1], UIParent, p[2] or p[1], p[3] or 0, p[4] or 0)
+        -- positions saved before this fix may be pinned by the bottom or center: convert
+        if not tostring(p[1]):find("^TOP") then TG.AnchorTop(frame, key) end
     else
         frame:SetPoint(point, UIParent, relPoint or point, x or 0, y or 0)
     end

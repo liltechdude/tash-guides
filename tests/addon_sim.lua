@@ -625,6 +625,23 @@ do
     pump(10)
 end
 
+print("windows keep their header in place")
+do
+    local f = CreateFrame("Frame", nil, UIParent)
+    f.GetLeft = function() return 1500 end
+    f.GetTop = function() return 900 end
+    TG.db.positions.simtest = { "BOTTOMRIGHT", "BOTTOMRIGHT", -40, 120 }   -- saved by an older version
+    TG.RestorePosition(f, "simtest", "TOPLEFT", "TOPLEFT", 0, 0)
+    local p = TG.db.positions.simtest
+    check(p[1] == "TOPLEFT" and p[3] == 1500 and p[4] == 900, "a bottom-anchored saved position is re-pinned by its top-left corner")
+    TG.MakeMovable(f, "simtest")
+    f.GetPoint = function() return "CENTER", UIParent, "CENTER", 10, 10 end   -- WoW re-anchors after a drag
+    f._scripts.OnDragStop(f)
+    p = TG.db.positions.simtest
+    check(p[1] == "TOPLEFT" and p[2] == "BOTTOMLEFT", "after a drag the window is pinned by its top, so collapsing keeps the header still")
+    TG.db.positions.simtest = nil
+end
+
 print("spawn picking")
 do
     local WP = TG.Way

@@ -1,4 +1,4 @@
-# TashGuides 0.8.0
+# TashGuides 0.8.1
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -66,7 +66,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.8.0 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.8.1 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
