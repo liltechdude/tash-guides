@@ -2,7 +2,7 @@
 ## Title: |cff00b877Tash|cffffd100Guides|r
 ## Notes: Step-by-step leveling guides with a waypoint arrow, quest tracker, map and minimap quest pins, and quest tooltips for WoW Forever. Powered by QuestieDB.
 ## Author: TashGuides
-## Version: 0.4.0
+## Version: 0.6.0
 ## Dependencies: QuestieDB
 ## SavedVariables: TashGuidesDB
 ## SavedVariablesPerCharacter: TashGuidesCharDB
