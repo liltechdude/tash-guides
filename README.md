@@ -3,6 +3,8 @@
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
 
+
+
 ## Contents
 
 - [Features at a glance](#features-at-a-glance)
