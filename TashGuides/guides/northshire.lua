@@ -11,7 +11,7 @@ TashGuides.RegisterGuide({
     races = { "Human" },
     minLevel = 1, maxLevel = 6,
     area = 12, -- Elwynn Forest map
-    next = "ZONE_1429", -- the generated Elwynn Forest guide, or the Smart Guide without it
+    next = "A_ELWYNN",
     steps = {
         { title = "Welcome to Northshire",
             { "accept", 783 },
@@ -79,6 +79,6 @@ TashGuides.RegisterGuide({
         { title = "Goldshire",
             { "turnin", 54 }, { "turnin", 91772 }, { "turnin", 2158 }, { "turnin", 96627 },
             { "talk", 295, "and make Goldshire your home" },
-            note = "Marshal Dughan, Innkeeper Farley and Sam Sarsaparilla are all in Goldshire. From here the Elwynn Forest guide (or the Smart Guide) takes over." },
+            note = "Marshal Dughan, Innkeeper Farley and Sam Sarsaparilla are all in Goldshire. The Elwynn Forest guide takes over from here." },
     },
 })

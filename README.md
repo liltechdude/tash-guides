@@ -1,4 +1,4 @@
-# TashGuides 0.9.0
+# TashGuides 0.10.0
 
 A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**, which must be installed separately and enabled in the add-on menu along with this.
 ---
@@ -13,7 +13,7 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 - [Installation](#installation)
 - [Getting started](#getting-started)
 - [Guide window](#guide-window)
-- [Guides: curated, zone, class, profession and Smart](#guides-curated-zone-class-profession-and-smart)
+- [Guides: campaign, zone, class, profession and Smart](#guides-campaign-zone-class-profession-and-smart)
 - [Waypoint arrow](#waypoint-arrow)
 - [Quest tracker](#quest-tracker)
 - [Map and minimap pins](#map-and-minimap-pins)
@@ -35,9 +35,9 @@ A leveling-guide addon for WoW Forever. All quest data comes from **QuestieDB**,
 |---|---|
 | **Guide window** | The current step's goals (accept, complete, turn in, go to, talk to...) with checkmarks and objective progress. Moves to the next step when every goal is done. Shows a few upcoming steps and a progress bar. `<` / `>` browse earlier and later steps without moving the guide; click the step bar to return to the current one. |
 | **Steps panel** | The note icon in the guide window header (or `/tg steps`). Every step of the guide: earlier steps (done), the current one and what is coming up, with per-step goal counts. Click a step to view it, right-click to move the guide there. For the Smart Guide it lists every task lined up plus your recent quest activity. |
-| **Smart Guide** | Works in any zone without hand-written data. Builds steps from your turn-ins, objectives and nearby quest givers. **Linear** routing (default) plans a fixed route and walks you through it step by step like a written guide; **Nearest** routing re-sorts by distance as you move. Used when no curated guide fits your character. |
-| **Curated guides** | Northshire Valley (Human 1-6) and Valley of Trials (Orc/Troll 1-6), written by hand. Each continues into the generated guide for its zone. Quests for other classes are hidden automatically. |
-| **Zone guides** | A step-by-step guide for every zone from level 1 to 60 (around 40 of them), generated from QuestieDB for your faction, race and class: chains in order, quests grouped by giver and objective area, a believable level pace. Opens in the guide window like any other guide, with the arrow, tracker and Steps panel. |
+| **Smart Guide** | Works in any zone without hand-written data. Builds steps from your turn-ins, objectives and nearby quest givers. **Linear** routing (default) plans a fixed route and walks you through it step by step like a written guide; **Nearest** routing re-sorts by distance as you move. Used when no campaign guide fits your character. |
+| **Leveling campaign** | A hand-written route from level 1 to 60 for every race: 70 guides, one per zone visit, each handing you on to the next. Every race starts in its own starting area and joins its faction's shared route through the mid levels, ending in Silithus. Quests for other races and classes are hidden automatically. |
+| **Zone guides** | A step-by-step guide for every zone from level 1 to 60 (around 40 of them), generated from QuestieDB for your faction, race and class: every quest of the zone, chains in order, quests grouped by giver and objective area. Use them alongside the campaign to clear a zone completely, or wherever you want a guide for the zone you are in. |
 | **Profession guides** | One guide per profession with quests (*Alchemy quests*, *Cooking quests*, ...), ordered by the skill each one needs. Professions you have learned are marked. |
 | **Class & race chains** | Your class quests (trainer letters, class quest lines) and racial quests are found in QuestieDB at login and offered as their own guides, *Warrior quests*, *Human quests* and so on, in level order with prerequisites first. The main guides (zone guides and the Smart Guide) include them too unless you opt out: class crest in the guide header, the checkbox in the guide picker, the option *Include class & race quests*, or `/tg chains`. The Smart Guide offers every class/racial quest you can take wherever its giver is, ranked ahead of ordinary quests at a similar distance. |
 | **Waypoint arrow** | Points to the current goal, colored green to red by heading, with distance in yards and ETA. Shows a check when you arrive at a spot, and an **objective-area** display (colored ring, objective icon, *IN OBJECTIVE AREA* and your progress) once you are among the mobs or nodes a quest needs. Right-click it to clear a manual waypoint. Targets on other maps (a trainer in a city, a turn-in two zones over) still get a direction and distance. When the current step has nothing to point at (an item-started quest, a note) the arrow points at the next step that does, marked *Next: ...*. For objectives with many spawns it favors spawns ahead of you over ones behind (tunable in options: *Prefer spawns ahead of you*) and moves on from spawns you just cleared. |
@@ -71,7 +71,7 @@ If QuestieDB is missing or too old, TashGuides prints a message in chat on login
 3. Make sure **QuestieDB** is in the same `AddOns` folder.
 4. Start the game, or type `/reload` if it is already running. Check that TashGuides and QuestieDB are both enabled on the character-select AddOns screen.
 
-On login you should see a chat line like `TashGuides: v0.9.0 ready - Northshire Valley. Type /tg help for commands.`
+On login you should see a chat line like `TashGuides: v0.10.0 ready - Northshire Valley. Type /tg help for commands.`
 
 To update, replace the `TashGuides` folder with the new one. Your settings and progress are kept (see [Saved data](#saved-data-and-per-character-progress)).
 
@@ -81,9 +81,9 @@ To update, replace the `TashGuides` folder with the new one. Your settings and p
 
 When you log in, TashGuides picks a guide for you:
 
-- If a curated guide matches your faction and race and you are within its level range (or one level below it), it loads that guide.
-- Otherwise, if there is a zone guide for the zone you are standing in and your level fits it, it loads that one. (Zone guides are built a moment after login, so the Smart Guide shows briefly first.)
-- Otherwise it loads the **Smart Guide**.
+- If a campaign guide for the zone you are standing in suits your faction and race and you are within its level range (or one level below it), it loads that guide. Your race's starting area wins over the zone's later guide, and a guide you have not finished wins over one you have.
+- Otherwise, if there is a generated zone guide for the zone you are standing in and your level fits it, it loads that one. (Zone guides are built a moment after login, so another guide may show briefly first.)
+- Otherwise it loads the campaign guide that fits your level best, or the **Smart Guide** if none does.
 
 Once you choose a guide yourself, TashGuides never swaps it for another.
 
@@ -118,7 +118,7 @@ Every window can be dragged by holding the left mouse button. Positions are reme
 
 ## Guide window
 
-The guide window is the main view. It has a title bar, a step bar, the goals for the current step, and (for curated guides) a progress bar along the bottom.
+The guide window is the main view. It has a title bar, a step bar, the goals for the current step, and (for written guides) a progress bar along the bottom.
 
 ### Title bar buttons
 
@@ -131,7 +131,7 @@ The guide window is the main view. It has a title bar, a step bar, the goals for
 
 ### Step bar
 
-For curated guides the step bar shows `Step 4/23` and the step's title, with arrow buttons on either side:
+For written guides (the campaign, zone, class and profession guides) the step bar shows `Step 4/23` and the step's title, with arrow buttons on either side:
 
 - **Left arrow**: look back at the previous step without losing your place. The label shows `(viewing)` in red while you are looking at an earlier step. Press the right arrow to walk back forward to where you actually are.
 - **Right arrow**: go forward. Use it to confirm a step that only contains notes, or to move ahead manually. **Shift-click** skips the current step. When you have finished a guide, the right arrow loads the next guide.
@@ -182,28 +182,51 @@ When every goal in a step is done, the guide moves on and plays a short sound. Y
 
 ### Upcoming steps and progress bar
 
-Below the current step, the window shows the first goal of the next few steps, dimmed. Show anywhere from 0 to 5 with the **Upcoming steps shown** option (default 2). For curated guides a progress bar at the bottom shows steps done, total steps and a percentage.
+Below the current step, the window shows the first goal of the next few steps, dimmed. Show anywhere from 0 to 5 with the **Upcoming steps shown** option (default 2). For written guides a progress bar at the bottom shows steps done, total steps and a percentage.
 
 ---
 
-## Guides: curated, zone, class, profession and Smart
+## Guides: campaign, zone, class, profession and Smart
 
-### Curated guides
+### The leveling campaign
 
-| Guide | For | Levels |
+The campaign is a set of hand-written guides, one per zone visit, that take every race from level 1 to 60. Each one is a fixed route: which quests to take, in what order, where to go and how to get there, with tips along the way. Quest names, NPC names and locations are filled in from QuestieDB. When you finish a guide, the right arrow loads the next one.
+
+**Starting out (1-12).** Every race has its own start:
+
+| Race | Route |
+|---|---|
+| Human | Northshire Valley, Elwynn Forest, Westfall, then Redridge Mountains |
+| Dwarf, Gnome | Coldridge Valley, Dun Morogh, Loch Modan, then Redridge Mountains |
+| Night Elf | Shadowglen, Teldrassil, Darkshore, Ashenvale, then Duskwood |
+| Orc, Troll | Valley of Trials, Durotar, then The Barrens |
+| Tauren | Camp Narache, Mulgore, then The Barrens |
+| Undead | Deathknell, Tirisfal Glades, Silverpine Forest, then The Barrens |
+
+**The shared route.**
+
+| Levels | Alliance | Horde |
 |---|---|---|
-| Northshire Valley | Human (Alliance) | 1-6 |
-| Valley of Trials | Orc and Troll (Horde) | 1-6 |
+| 15-30 | Redridge Mountains, Duskwood, Wetlands | The Barrens (part 1), Stonetalon Mountains, The Barrens (part 2), Ashenvale, Thousand Needles |
+| 25-40 | Hillsbrad Foothills, Alterac Mountains, Arathi Highlands, Stranglethorn Vale (part 1), Thousand Needles, Desolace | Hillsbrad Foothills, Alterac Mountains, Arathi Highlands, Stranglethorn Vale (part 1), Desolace |
+| 35-45 | Dustwallow Marsh, Badlands, Swamp of Sorrows, Stranglethorn Vale (part 2) | the same |
+| 40-50 | Tanaris, Feralas, The Hinterlands, Searing Gorge | the same |
+| 45-55 | Blasted Lands, Azshara, Un'Goro Crater, Felwood | the same |
+| 50-60 | Burning Steppes, Western Plaguelands, Eastern Plaguelands, Winterspring, Silithus | the same |
 
-Curated guides are fixed routes written by hand: which quests to take, in what order, where to go, and tips along the way. Quest names, NPC names and locations are filled in from QuestieDB. Both guides finish by handing you off to the generated guide for their zone (Elwynn Forest, Durotar), or the Smart Guide when that is missing.
+The guides of the same zone differ by faction: each uses its own faction's hubs, flight paths and quests.
+
+**What is in them.** The quests of each zone that suit the route: normal quests, your race's quests, and the quests added for Forever. Left out: dungeon and raid quests, elite group quests, repeatable, holiday and profession quests, and class quests apart from the trainer letters in the starting areas (your class quests have their own guide, see [Class & race chains](#features-at-a-glance)). Some zones offer few quests to one faction once those are left out, so a few guides are short. Quests that start from a random drop are optional: if the item drops, the guide picks up the quest and its follow-ups, and if it never does, those steps are skipped. A few steps say *Reach level N* where the next quests need it.
+
+**Pace.** The guides are written for a player who kills what is in the way, not one who grinds. Counting the kills on the way as roughly as much experience as the quests, the campaign reaches level 60 in the Eastern Plaguelands. If you skip quests you may need a dungeon or a generated zone guide to catch up; the guide picker shows each guide's level range.
 
 The picker only lists guides that suit your character's faction and race.
 
-> More curated guides are welcome. See [For guide authors](#for-guide-authors-and-developers).
+> Improvements to the campaign are welcome. See [For guide authors](#for-guide-authors-and-developers).
 
 ### Zone guides
 
-Zone guides cover every zone with enough quests, from level 1 to 60. They are not typed in: TashGuides reads QuestieDB at login and builds each one for the character that is logged in, so a Tauren Warrior and a Gnome Mage get different guides for the same zone. Open them from the picker (they are grouped by level range), with `/tg zone` for the zone you are standing in, or let the guide pick one for you at login (see [Getting started](#getting-started)).
+Zone guides cover every zone with enough quests, from level 1 to 60. Where the campaign picks a route through a zone, a zone guide lists all of its quests for you. They are not typed in: TashGuides reads QuestieDB at login and builds each one for the character that is logged in, so a Tauren Warrior and a Gnome Mage get different guides for the same zone. Open them from the picker (they are grouped by level range), with `/tg zone` for the zone you are standing in, or let the guide pick one for you at login (see [Getting started](#getting-started)).
 
 **What goes in.** Quests your character can take: your faction, race and class, level 60 or lower, started by someone who stands somewhere on the map, filed under the zone the giver is in. A quest from another class's trainer is left out even if the database forgot its class flag (a `<Hunter Trainer>` is a hunter's quest). **What stays out:** repeatable and holiday quests, profession quests (they have their own guides), quests that start from an item or inside an instance, and quests whose every objective is inside an instance. Breadcrumb quests whose target is in the same zone are skipped, and of two exclusive quests only the first is listed.
 
@@ -249,7 +272,7 @@ The Smart Guide only suggests quests you can actually accept right now. It appli
 
 Open the picker with the book icon, `/tg guides`, or the **Choose guide...** button in the options. Click a guide to load it. The active one is marked with `>`. The picker also has a **Restart current guide** button.
 
-The picker is a scrolling list in sections: Smart and curated guides, zones by level range (1-10, 10-20, and so on), class and race quests, and profession quests. The guide you are on is marked with `>` and the list opens scrolled to it; hover a guide to see its level range and your place in it.
+The picker is a scrolling list in sections: the Smart Guide, the campaign by level range (1-10, 10-20, and so on), generated zone guides by level range, class and race quests, and profession quests. The guide you are on is marked with `>` and the list opens scrolled to it; hover a guide to see its level range and your place in it.
 
 Your place in every guide is saved separately for each character, so you can swap guides and come back where you left off.
 
@@ -419,7 +442,7 @@ The commands are `/tg` and `/tashguides` (they are the same).
 | `/tg way 45.2 61.8 [note]` | Set a waypoint at those coordinates (0-100) on the map you are standing on. The note is an optional label. |
 | `/tg clear` | Clear the waypoint you set. |
 | `/tg options` | Open the options window. |
-| `/tg reset` | Restart the current curated guide from step 1. |
+| `/tg reset` | Restart the current guide from step 1. |
 | `/tg status` | Print the version, the QuestieDB connection, how many quests are currently available to you, your place in the current guide, and how many zone and profession guides were generated. |
 | `/tg help` | List the commands in chat. (Any unknown command does the same.) |
 
@@ -514,13 +537,16 @@ It is hidden inside instances, and when there is no current target. Check **Show
 Raise **Prefer spawns ahead of you** in the options. Set it to 0 if you would rather have the plain nearest spawn.
 
 **The guide asks me to accept a quest the NPC does not offer.**
-QuestieDB occasionally lacks a requirement the game enforces, most often a class: a quest from another class's trainer with no class flag in the data. TashGuides handles both ends of this. A quest whose only givers are trainers of one class (`<Hunter Trainer>`, `<Mage Trainer>`, ...) counts as that class's quest, even when the data has no class flag. And when you open an NPC's quest window, any quest the data says they should have for you but the window does not list is hidden from the guide, pins and Smart Guide, with a chat line saying so. It gets another look each time you level up, in case a level or another requirement was the reason. Grey low-level quests are never judged this way, because the client can hide those itself.
+QuestieDB occasionally lacks a requirement the game enforces, most often a class: a quest from another class's trainer with no class flag in the data. TashGuides handles both ends of this. A quest whose only givers are trainers of one class (`<Hunter Trainer>`, `<Mage Trainer>`, ...) counts as that class's quest, even when the data has no class flag, unless it continues an ordinary quest chain (a trainer handing out one step of a story everyone does). And when you open an NPC's quest window, any quest the data says they should have for you but the window does not list is hidden from the guide, pins and Smart Guide, with a chat line saying so. It gets another look each time you level up, in case a level or another requirement was the reason. Grey low-level quests are never judged this way, because the client can hide those itself.
 
 **The guide says a quest "is not in your quest log yet".**
 You have not picked that quest up. Do the earlier goal in the step first.
 
-**My character is above level 6 and there is no curated guide.**
-That is expected: the curated guides are the hand-written starting areas. From there the generated [zone guides](#zone-guides) cover levels 1 to 60 and the Smart Guide works anywhere. `/tg zone` opens the one for where you are. They appear a moment after login; if the picker shows no zones, `/tg status` says how many were built.
+**I am in a zone the campaign does not visit, or ahead of or behind it.**
+Open the picker and choose the campaign guide for your level, or use the generated [zone guide](#zone-guides) for where you are (`/tg zone`). Zone guides appear a moment after login; if the picker shows no zones, `/tg status` says how many were built. The Smart Guide works anywhere.
+
+**A campaign step waits on a quest I cannot do.**
+Shift-click `>` to skip the step. If a quest the guide counts on is not offered to you, TashGuides notices when you open the NPC's quest window and stops waiting on it (see the next answer).
 
 **A zone guide is missing a quest I know about, or has an odd step.**
 Zone guides are built from QuestieDB's data, so they can only be as good as it is. A quest is left out if it is not for your faction, race or class, repeatable, a holiday quest, or starts from an item or inside an instance. Holiday quests are recognised by their quest category (`HOLIDAY_SORT` in `TashGuides/zones.lua`); if one slips into a guide, add its category number there. Shift-click `>` skips any step.
@@ -536,6 +562,47 @@ Yes. It handles values the game restricts during combat and will not spam errors
 
 **Something is wrong with a quest location or objective.**
 Locations come from QuestieDB. If the database is wrong, the fix belongs there, but please also open an issue here so it can be tracked.
+
+---
+
+## For guide authors and developers
+
+### Writing a guide
+
+A guide is a Lua file in `TashGuides/guides/` that calls `TashGuides.RegisterGuide`, listed in `TashGuides.toc`. The campaign lives in `guides/alliance/` and `guides/horde/`. A short example:
+
+```lua
+TashGuides.RegisterGuide({
+    id = "A_WESTFALL", title = "Westfall", subtitle = "Levels 11-17",
+    faction = "Alliance",            -- races = { "Dwarf", "Gnome" } for a starting area
+    minLevel = 11, maxLevel = 17,
+    area = 40,                       -- AreaID of the zone: the default map for goto goals
+    areas = { 1519 },                -- other AreaIDs where the guide picks up or hands in
+    next = "A_REDRIDGE",             -- the guide the right arrow offers at the end
+    steps = {
+        { title = "Sentinel Hill",
+            { "turnin", 109 }, { "accept", 12 }, { "accept", 102 },
+            note = "Gryan Stoutmantle and Captain Danuvin in the tower (56, 47)." },
+        { { "talk", 523, "for the flight path" } },
+        { title = "Defias on the farms", { "complete", 12 },
+            note = "Trappers and Smugglers walk the fields north of the hill (44, 34)." },
+    },
+})
+```
+
+Goals: `{"accept", q}`, `{"complete", q}`, `{"turnin", q}`, `{"goto", x, y, "text", area = AreaID}`, `{"talk", npcId, "text"}`, `{"level", n}`, `{"hearth", "Place"}`, `{"fly", "Place"}` and `{"note", "text"}`. Any goal can be `optional = true`: it never holds a step up, and a step made only of optional goals is skipped unless you are on that chain (the quest is in your log, or an earlier quest you did has unlocked it). Step keys: `title`, `note`, `race`, `class`, and `chain = "class"` for class quests (hidden by the *Include class & race quests* opt-out). Quests another race or class cannot do are hidden automatically. Write hand-ins first in a step, then pick-ups, then objectives. The full reference is at the top of `TashGuides/guide.lua`.
+
+### Tools
+
+Everything runs offline against the installed QuestieDB with [LuaJIT](https://luajit.org) (`QDB=/path/to/QuestieDB` overrides the location):
+
+| Command | What it does |
+|---|---|
+| `luajit tests/zdump.lua Alliance 40` | Every quest the faction can pick up in a zone (AreaID), with givers, hand-ins and coordinates, prerequisites, exclusive quests and where the objectives are. Add a level range: `... 40 10 20`. |
+| `luajit tests/qlookup.lua q 783 7` | Quests in detail; `npc 823` for an NPC. |
+| `luajit tests/check_guides.lua` | Validates every hand-written guide, then walks each race's campaign from its starting guide through every `next`: quests exist and suit the faction, givers stand on the guide's maps, quests are accepted before they are completed or turned in, prerequisites come first, exclusive quests and breadcrumbs are respected, child quests are taken while their parent is in the log, and the quest log never holds more than 20. `ONLY=A_WESTFALL,H_BARRENS` limits it to those guides (id prefixes) and also checks each of them on its own, so a guide can be tested before its neighbours exist. |
+| `luajit tests/pace.lua` | Estimated level on arriving at and leaving each campaign guide, per race (`RACE=Tauren` for one). |
+| `luajit tests/addon_sim.lua` | Loads the whole addon under a mocked client and runs the engine checks, including playing every race's campaign from level 1 to the end. `FACTION=Horde` for the Horde races. |
 
 ---
 

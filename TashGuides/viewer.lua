@@ -310,10 +310,10 @@ local PICK_TOP, PICK_BOTTOM = 28, 62
 
 local function sectionLabel(def)
     local g = Guide.GroupOf(def)
-    if g == "smart" or g == "curated" then return "SMART & CURATED GUIDES" end
-    if g == "zone" then
-        local b = math.floor((def.minLevel or 1) / 10) * 10
-        return ("ZONES - LEVELS %d-%d"):format(math.max(b, 1), b + 10)
+    if g == "smart" then return "SMART GUIDE" end
+    if g == "curated" or g == "zone" then
+        local b = math.min(50, math.floor((def.minLevel or 1) / 10) * 10)
+        return ("%s - LEVELS %d-%d"):format(g == "curated" and "CAMPAIGN" or "GENERATED ZONES", math.max(b, 1), b + 10)
     end
     if g == "class" or g == "race" then return "CLASS & RACE QUESTS" end
     return "PROFESSION QUESTS"

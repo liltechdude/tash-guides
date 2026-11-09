@@ -1,0 +1,35 @@
+-- The Hinterlands (Alliance 42-50). Quest ids, givers and coordinates are taken from the
+-- QuestieDB Forever data (tests/zdump.lua) and checked by tests/check_guides.lua.
+
+TashGuides.RegisterGuide({
+    id = "A_HINTERLANDS",
+    title = "The Hinterlands",
+    subtitle = "Levels 42-50",
+    faction = "Alliance",
+    minLevel = 42, maxLevel = 50,
+    area = 47,
+    next = "A_SEARING_GORGE",
+    steps = {
+        { title = "Aerie Peak",
+            { "talk", 8018, "for the flight path" },
+            { "talk", 7744, "and make Aerie Peak your home", optional = true },
+            note = "From Theramore take the boat to Menethil Harbor and fly to Aerie Peak. Without that flight path, fly to Southshore and ride north-east through the Hillsbrad hills into the Hinterlands; Aerie Peak is just inside, at (14, 44). Guthrum Thunderfist is at (11, 46), Innkeeper Thulfram at (14, 42)." },
+        { { "accept", 2880 }, { "accept", 2877 }, { "accept", 2988 },
+            note = "Fraggar Thundermantle (15, 45) and Gryphon Master Talonaxe (10, 45)." },
+        { title = "Witherbark cages",
+            { "complete", 2988 },
+            note = "Two cages stand in the Witherbark village at (23, 59) and the third at (32, 57). The trolls there also drop Troll Tribal Necklaces." },
+        { title = "Skulk Rock",
+            { "complete", 2877 },
+            { "accept", 485, optional = true }, { "turnin", 485, optional = true },
+            note = "Green Sludges and Jade Oozes ooze around Skulk Rock (52, 45). An OOX-09/HL Distress Beacon can drop from almost anything here; the robot is at (49, 38). Its escort ends in Booty Bay, so this guide stops there." },
+        { { "turnin", 2988 }, { "accept", 2989 }, { "turnin", 2877 },
+            note = "Back to Talonaxe and Fraggar in Aerie Peak." },
+        { title = "The Altar of Zul",
+            { "complete", 2989 }, { "complete", 2880 },
+            note = "Search the Altar of Zul at the top of the ruins (49, 69). Vilebranch Axe Throwers walk the ruins below it (46, 66); every Vilebranch or Witherbark troll can carry a necklace." },
+        { title = "Aerie Peak hand-ins",
+            { "turnin", 2989 }, { "turnin", 2880 },
+            note = "Talonaxe and Fraggar. Talonaxe's next errand sends you to the Blasted Lands, and the necklace bounty becomes repeatable; skip both. Fly to Ironforge and head for the Searing Gorge." },
+    },
+})

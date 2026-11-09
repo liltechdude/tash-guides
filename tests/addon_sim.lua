@@ -867,7 +867,14 @@ do
         TG.char.guideChosen = nil
         G.Load("SMART", true)
         G.OnZones()
-        check(G.active.id == zone.id, "an unchosen Smart Guide is replaced by the guide for the current zone (" .. tostring(G.active.id) .. ")")
+        -- a hand-written campaign guide for this zone wins; without one, the generated guide
+        local curated
+        for _, def in ipairs(G.List()) do
+            if G.GroupOf(def) == "curated" and def.area and TG.DB.UiMap(def.area) == zone.map
+                and level >= def.minLevel - 1 and level <= def.maxLevel then curated = curated or def.id end
+        end
+        local want = curated or zone.id
+        check(G.active.id == want, "an unchosen Smart Guide is replaced by the guide for the current zone (" .. tostring(G.active.id) .. ", want " .. want .. ")")
         TG.char.guideChosen = true
         G.Load("SMART", true)
         G.OnZones()
@@ -879,6 +886,104 @@ do
         check(nextId == nil or G.registry[nextId], "a zone guide suggests a registered next guide (" .. tostring(nextId) .. ")")
         player.map, level, TG.char.guideChosen = savedMap, savedLevel, savedChosen
     end
+    G.Load(expectGuide, true)
+    pump(20)
+end
+
+print("campaign guides")
+do
+    -- For every race of the faction: follow its hand-written campaign from its starting guide
+    -- through every `next` and play each guide through the real engine. Every step must be
+    -- finishable in order with nothing but the guide's own quests done before it.
+    local G, AV = TG.Guide, TG.Avail
+    local savedRace, savedRaceID, savedLevel = player.race, player.raceID, level
+    local races = HORDE and { "Orc", "Troll", "Scourge", "Tauren" } or { "Human", "Dwarf", "Gnome", "NightElf" }
+    if os.getenv("CAMPAIGN_RACE") then races = { os.getenv("CAMPAIGN_RACE") } end
+    for _, race in ipairs(races) do
+        player.race, player.raceID = race, RACES[race]
+        AV.PlayerFacts()
+        TG.Chains.Scan()
+        local start
+        for _, def in ipairs(G.List()) do
+            if G.GroupOf(def) == "curated" and def.races and (def.minLevel or 1) <= 1 then
+                for _, r in ipairs(def.races) do if r:upper() == race:upper() then start = def end end
+            end
+        end
+        check(start ~= nil, "a starting guide for " .. race .. " (" .. tostring(start and start.id) .. ")")
+        for q in pairs(completed) do completed[q] = nil end
+        for i = #log, 1, -1 do table.remove(log, i) end
+        TG.QuestLog.completed = {}
+        TG.char.cursor, TG.char.manual, TG.char.skipped = {}, {}, {}
+        AV.ForgetGone()
+        level = 1
+        fire("QUEST_LOG_UPDATE")
+        pump(20)
+        local path, seen = {}, {}
+        local def = start
+        while def and not seen[def.id] do
+            seen[def.id] = true
+            path[#path + 1] = def.id
+            def = def.next and G.registry[def.next]
+        end
+        local totalSteps, stuckAll, unfinished, maxLog = 0, 0, 0, 0
+        for _, id in ipairs(path) do
+            G.Load(id, true)
+            local steps = #G.Steps()
+            totalSteps = totalSteps + steps
+            local stuck = 0
+            for _ = 1, steps * 14 + 100 do
+                if G.Finished() then break end
+                local si = G.cursor
+                local step = G.Steps()[si]
+                local acted = false
+                for gi, g in ipairs(step.goals) do
+                    local st = G.GoalStatus(si, gi, g)
+                    -- optional goals are played only when the step waits on them (a chain in progress)
+                    if st == "todo" and (not g.optional or (G.OptionalActive(g) and G.StepStatus(si) == "todo")) then
+                        if g.type == "accept" then
+                            local ok, why = AV.IsEligible(g.quest)
+                            if not ok and why == "level" then
+                                level = math.max(level, QuestDB.Get(g.quest, "requiredLevel"))
+                                fire("PLAYER_LEVEL_UP", level)
+                                pump(40)
+                                ok, why = AV.IsEligible(g.quest)
+                            end
+                            if ok then accept(g.quest, objectivesFor(g.quest))
+                            else
+                                stuck = stuck + 1
+                                if stuck <= 3 then
+                                    local pre = {}
+                                    for _, p in ipairs(QuestDB.Get(g.quest, "preQuestSingle") or {}) do
+                                        local pok, pwhy = AV.IsEligible(p)
+                                        pre[#pre + 1] = ("%d:%s"):format(p, TG.QuestLog.IsCompleted(p) and "done" or tostring(pwhy or pok))
+                                    end
+                                    print(("    %s %s step %d: quest %d %s cannot be accepted (%s; needs %s)"):format(race, id, si, g.quest,
+                                        tostring(QuestDB.name(g.quest)), tostring(why), table.concat(pre, " ")))
+                                end
+                                G.Skip()
+                            end
+                        elseif g.type == "complete" then finishObjectives(g.quest)
+                        elseif g.type == "turnin" then turnin(g.quest)
+                        elseif g.type == "level" then level = math.max(level, g.level) fire("PLAYER_LEVEL_UP", level) pump(10)
+                        else G.ToggleGoal(si, gi) end
+                        acted = true
+                        break
+                    end
+                end
+                maxLog = math.max(maxLog, #log)
+                if not acted then G.Next() end
+                pump(2)
+            end
+            if not G.Finished() then unfinished = unfinished + 1 print("    " .. race .. " " .. id .. " did not finish at step " .. G.cursor .. "/" .. steps) end
+            stuckAll = stuckAll + stuck
+        end
+        check(stuckAll == 0 and unfinished == 0, ("%s campaign plays through: %d guides, %d steps, %d stuck, largest log %d"):format(race, #path, totalSteps, stuckAll, maxLog))
+        check(maxLog <= 20, race .. ": the quest log never overflows (" .. maxLog .. ")")
+        check(#path >= 25 and path[#path]:find("SILITHUS"), race .. ": the campaign reaches Silithus (" .. path[#path] .. ")")
+    end
+    player.race, player.raceID, level = savedRace, savedRaceID, savedLevel
+    AV.PlayerFacts()
+    TG.Chains.Scan()
     G.Load(expectGuide, true)
     pump(20)
 end

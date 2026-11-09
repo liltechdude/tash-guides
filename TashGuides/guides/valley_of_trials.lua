@@ -11,7 +11,7 @@ TashGuides.RegisterGuide({
     races = { "Orc", "Troll" },
     minLevel = 1, maxLevel = 6,
     area = 14, -- Durotar map
-    next = "ZONE_1411", -- the generated Durotar guide, or the Smart Guide without it
+    next = "H_DUROTAR",
     steps = {
         { title = "Welcome to the Valley",
             { "accept", 4641 },
@@ -59,6 +59,6 @@ TashGuides.RegisterGuide({
         { { "turnin", 794 }, { "accept", 805 } },
         { title = "On to Sen'jin Village",
             { "turnin", 805 },
-            note = "Follow the road east out of the valley, then south to Sen'jin Village. The Durotar guide (or the Smart Guide) takes over from here." },
+            note = "Follow the road east out of the valley, then south to Sen'jin Village. The Durotar guide takes over from here." },
     },
 })

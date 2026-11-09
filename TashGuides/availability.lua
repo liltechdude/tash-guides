@@ -36,24 +36,46 @@ local function trainerClass(npcId)
     return token and CLASS_TOKENS[token] and token or nil
 end
 
+-- The class of the trainer(s) who start a quest, when every NPC that starts it is a trainer
+-- of that one class and nothing else (no object or item) starts it.
+local function starterClass(qid)
+    local c = false
+    local g = DB.Quest(qid, "startedBy")
+    local npcs = type(g) == "table" and g[1] or nil
+    local objects, items = type(g) == "table" and g[2] or nil, type(g) == "table" and g[3] or nil
+    if npcs and #npcs > 0 and not (objects and #objects > 0) and not (items and #items > 0) then
+        for _, id in ipairs(npcs) do
+            local t = trainerClass(id)
+            if not t or (c and c ~= t) then return false end
+            c = t
+        end
+    end
+    return c
+end
+
+-- Does the quest follow an ordinary quest (no class flag, not from a class trainer)? Then it
+-- is part of a chain everyone can do, even when a trainer happens to hand out this step.
+local function followsOrdinaryQuest(qid)
+    for _, key in ipairs({ "preQuestSingle", "preQuestGroup" }) do
+        for _, p in ipairs(DB.Quest(qid, key) or {}) do
+            if p > 0 and DB.QuestExists(p) and (DB.Quest(p, "requiredClasses") or 0) == 0 and not starterClass(p) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- Some quests (often ones added for Forever) carry no class flag in QuestieDB although the
 -- game only offers them to one class. When every NPC that starts a quest is a trainer of
--- the same class, treat the quest as that class's. Returns a class token or nil.
+-- the same class, treat the quest as that class's, unless it continues an ordinary quest
+-- chain. Returns a class token or nil.
 local inferredCache = {}
 function AV.InferredClass(qid)
     local c = inferredCache[qid]
     if c == nil then
-        c = false
-        local g = DB.Quest(qid, "startedBy")
-        local npcs = type(g) == "table" and g[1] or nil
-        local objects, items = type(g) == "table" and g[2] or nil, type(g) == "table" and g[3] or nil
-        if npcs and #npcs > 0 and not (objects and #objects > 0) and not (items and #items > 0) then
-            for _, id in ipairs(npcs) do
-                local t = trainerClass(id)
-                if not t or (c and c ~= t) then c = false break end
-                c = t
-            end
-        end
+        c = starterClass(qid)
+        if c and followsOrdinaryQuest(qid) then c = false end
         inferredCache[qid] = c
     end
     return c or nil
@@ -150,7 +172,8 @@ function AV.IsEligible(qid, level)
     local crumbFor = DB.Quest(qid, "breadcrumbForQuestId") or 0
     if crumbFor > 0 and (QL.IsCompleted(crumbFor) or QL.InLog(crumbFor)) then return false, "breadcrumb" end
     local parent = DB.Quest(qid, "parentQuest") or 0
-    if parent > 0 then return false, "child" end
+    -- a child quest is offered only while its parent quest is in the log
+    if parent > 0 and not QL.InLog(parent) then return false, "child" end
     return true
 end
 

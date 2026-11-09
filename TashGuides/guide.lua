@@ -152,6 +152,19 @@ function Guide.GoalStatus(si, gi, goal)
     return "todo"
 end
 
+-- Is an optional goal one the player is in the middle of? The quest is in the log (complete,
+-- turn in), or it is a follow-up that an earlier quest the player did has just unlocked.
+function Guide.OptionalActive(goal)
+    local q = goal.quest
+    if not q then return false end
+    if goal.type ~= "accept" then return QL.InLog(q) end
+    local pre = false
+    for _, key in ipairs({ "preQuestSingle", "preQuestGroup" }) do
+        for _, p in ipairs(DB.Quest(q, key) or {}) do if p > 0 then pre = true end end
+    end
+    return pre and (AV.IsEligible(q)) and true or false
+end
+
 -- Reasons a quest can never be picked up by this character any more.
 local GONE = { exclusive = true, breadcrumb = true, expired = true, ["too high"] = true }
 
@@ -170,15 +183,20 @@ function Guide.StepStatus(si)
         if not ok and GONE[why] then return "na" end
     end
     if not Guide.active.dynamic and TG.char.skipped[stepKey(si)] then return "done" end
-    local applicable, todo, info = 0, 0, 0
+    local applicable, todo, info, required, activeOptional = 0, 0, 0, 0, 0
     for gi, goal in ipairs(step.goals) do
         local s = Guide.GoalStatus(si, gi, goal)
         if s == "info" then info = info + 1
         elseif s ~= "na" then
             applicable = applicable + 1
+            if not goal.optional then required = required + 1 end
             if s == "todo" and not goal.optional then todo = todo + 1 end
+            if s == "todo" and goal.optional and Guide.OptionalActive(goal) then activeOptional = activeOptional + 1 end
         end
     end
+    -- a step made only of optional goals (the rest of a chain that starts from a random drop)
+    -- waits while the player is on that chain, and is skipped otherwise
+    if required == 0 and activeOptional > 0 then return "todo" end
     if applicable == 0 then
         if info == 0 then return "na" end
         return TG.char.manual[stepKey(si)] and "done" or "click"
@@ -630,21 +648,31 @@ function Guide.NextOf(def)
     return nil
 end
 
+-- The guide a character starts on. Hand-written guides that suit its faction and race and
+-- whose level range it is in (or one level below) are scored: the one for the zone it stands
+-- in first, then a race-specific guide (the starting areas), then one it has not finished,
+-- then the one whose range starts closest to its level. A hand-written guide for another
+-- zone only wins when the generated guide for the current zone does not fit.
 function Guide.PickDefault()
     local level = UnitLevel("player") or 1
-    local best
+    local map = WP.PlayerMap()
+    local best, bestScore, bestHere
     for _, def in ipairs(Guide.List()) do
         if Guide.GroupOf(def) == "curated" and level >= (def.minLevel or 1) - 1 and level <= (def.maxLevel or 60) then
             compile(def)
-            -- prefer race-specific guides, then the one with steps left
-            if not best or (def.races and not best.races) then best = def end
+            local here = map and def.area and DB.UiMap(def.area) == map or false
+            local at = TG.char.cursor and TG.char.cursor[def.id] or 1
+            local finished = at > #(def.compiledSteps or {})
+            local score = (here and 1000 or 0) + (def.races and 100 or 0) + (finished and 0 or 150)
+                - math.abs(level - (def.minLevel or 1))
+            if not bestScore or score > bestScore then best, bestScore, bestHere = def, score, here end
         end
     end
-    if best then return best.id end
-    -- No hand-written guide fits: use the generated guide for the zone you stand in.
-    local map = WP.PlayerMap()
+    if best and bestHere then return best.id end
+    -- the generated guide for the zone you stand in
     local zone = map and Guide.registry["ZONE_" .. map]
     if zone and level >= (zone.minLevel or 1) - 3 and level <= (zone.maxLevel or 60) + 2 then return zone.id end
+    if best then return best.id end
     return "SMART"
 end
 

@@ -2,7 +2,7 @@
 ## Title: |cff00b877Tash|cffffd100Guides|r
 ## Notes: Step-by-step leveling guides with a waypoint arrow, quest tracker, map and minimap quest pins, and quest tooltips for WoW Forever. Powered by QuestieDB.
 ## Author: TashGuides
-## Version: 0.9.0
+## Version: 0.10.0
 ## Dependencies: QuestieDB
 ## SavedVariables: TashGuidesDB
 ## SavedVariablesPerCharacter: TashGuidesCharDB
@@ -22,6 +22,74 @@ chains.lua
 zones.lua
 guides\northshire.lua
 guides\valley_of_trials.lua
+guides\alliance\alterac_mountains.lua
+guides\alliance\arathi_highlands.lua
+guides\alliance\ashenvale.lua
+guides\alliance\azshara.lua
+guides\alliance\badlands.lua
+guides\alliance\blasted_lands.lua
+guides\alliance\burning_steppes.lua
+guides\alliance\coldridge_valley.lua
+guides\alliance\darkshore.lua
+guides\alliance\desolace.lua
+guides\alliance\dun_morogh.lua
+guides\alliance\duskwood.lua
+guides\alliance\dustwallow_marsh.lua
+guides\alliance\eastern_plaguelands.lua
+guides\alliance\elwynn_forest.lua
+guides\alliance\felwood.lua
+guides\alliance\feralas.lua
+guides\alliance\hillsbrad_foothills.lua
+guides\alliance\loch_modan.lua
+guides\alliance\redridge_mountains.lua
+guides\alliance\searing_gorge.lua
+guides\alliance\shadowglen.lua
+guides\alliance\silithus.lua
+guides\alliance\stranglethorn_vale_1.lua
+guides\alliance\stranglethorn_vale_2.lua
+guides\alliance\swamp_of_sorrows.lua
+guides\alliance\tanaris.lua
+guides\alliance\teldrassil.lua
+guides\alliance\the_hinterlands.lua
+guides\alliance\thousand_needles.lua
+guides\alliance\ungoro_crater.lua
+guides\alliance\western_plaguelands.lua
+guides\alliance\westfall.lua
+guides\alliance\wetlands.lua
+guides\alliance\winterspring.lua
+guides\horde\alterac_mountains.lua
+guides\horde\arathi_highlands.lua
+guides\horde\ashenvale.lua
+guides\horde\azshara.lua
+guides\horde\badlands.lua
+guides\horde\blasted_lands.lua
+guides\horde\burning_steppes.lua
+guides\horde\camp_narache.lua
+guides\horde\deathknell.lua
+guides\horde\desolace.lua
+guides\horde\durotar.lua
+guides\horde\dustwallow_marsh.lua
+guides\horde\eastern_plaguelands.lua
+guides\horde\felwood.lua
+guides\horde\feralas.lua
+guides\horde\hillsbrad_foothills.lua
+guides\horde\mulgore.lua
+guides\horde\searing_gorge.lua
+guides\horde\silithus.lua
+guides\horde\silverpine_forest.lua
+guides\horde\stonetalon_mountains.lua
+guides\horde\stranglethorn_vale_1.lua
+guides\horde\stranglethorn_vale_2.lua
+guides\horde\swamp_of_sorrows.lua
+guides\horde\tanaris.lua
+guides\horde\the_barrens_1.lua
+guides\horde\the_barrens_2.lua
+guides\horde\the_hinterlands.lua
+guides\horde\thousand_needles.lua
+guides\horde\tirisfal_glades.lua
+guides\horde\ungoro_crater.lua
+guides\horde\western_plaguelands.lua
+guides\horde\winterspring.lua
 viewer.lua
 steplist.lua
 arrow.lua
