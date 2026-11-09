@@ -565,47 +565,6 @@ Locations come from QuestieDB. If the database is wrong, the fix belongs there, 
 
 ---
 
-## For guide authors and developers
-
-### Writing a guide
-
-A guide is a Lua file in `TashGuides/guides/` that calls `TashGuides.RegisterGuide`, listed in `TashGuides.toc`. The campaign lives in `guides/alliance/` and `guides/horde/`. A short example:
-
-```lua
-TashGuides.RegisterGuide({
-    id = "A_WESTFALL", title = "Westfall", subtitle = "Levels 11-17",
-    faction = "Alliance",            -- races = { "Dwarf", "Gnome" } for a starting area
-    minLevel = 11, maxLevel = 17,
-    area = 40,                       -- AreaID of the zone: the default map for goto goals
-    areas = { 1519 },                -- other AreaIDs where the guide picks up or hands in
-    next = "A_REDRIDGE",             -- the guide the right arrow offers at the end
-    steps = {
-        { title = "Sentinel Hill",
-            { "turnin", 109 }, { "accept", 12 }, { "accept", 102 },
-            note = "Gryan Stoutmantle and Captain Danuvin in the tower (56, 47)." },
-        { { "talk", 523, "for the flight path" } },
-        { title = "Defias on the farms", { "complete", 12 },
-            note = "Trappers and Smugglers walk the fields north of the hill (44, 34)." },
-    },
-})
-```
-
-Goals: `{"accept", q}`, `{"complete", q}`, `{"turnin", q}`, `{"goto", x, y, "text", area = AreaID}`, `{"talk", npcId, "text"}`, `{"level", n}`, `{"hearth", "Place"}`, `{"fly", "Place"}` and `{"note", "text"}`. Any goal can be `optional = true`: it never holds a step up, and a step made only of optional goals is skipped unless you are on that chain (the quest is in your log, or an earlier quest you did has unlocked it). Step keys: `title`, `note`, `race`, `class`, and `chain = "class"` for class quests (hidden by the *Include class & race quests* opt-out). Quests another race or class cannot do are hidden automatically. Write hand-ins first in a step, then pick-ups, then objectives. The full reference is at the top of `TashGuides/guide.lua`.
-
-### Tools
-
-Everything runs offline against the installed QuestieDB with [LuaJIT](https://luajit.org) (`QDB=/path/to/QuestieDB` overrides the location):
-
-| Command | What it does |
-|---|---|
-| `luajit tests/zdump.lua Alliance 40` | Every quest the faction can pick up in a zone (AreaID), with givers, hand-ins and coordinates, prerequisites, exclusive quests and where the objectives are. Add a level range: `... 40 10 20`. |
-| `luajit tests/qlookup.lua q 783 7` | Quests in detail; `npc 823` for an NPC. |
-| `luajit tests/check_guides.lua` | Validates every hand-written guide, then walks each race's campaign from its starting guide through every `next`: quests exist and suit the faction, givers stand on the guide's maps, quests are accepted before they are completed or turned in, prerequisites come first, exclusive quests and breadcrumbs are respected, child quests are taken while their parent is in the log, and the quest log never holds more than 20. `ONLY=A_WESTFALL,H_BARRENS` limits it to those guides (id prefixes) and also checks each of them on its own, so a guide can be tested before its neighbours exist. |
-| `luajit tests/pace.lua` | Estimated level on arriving at and leaving each campaign guide, per race (`RACE=Tauren` for one). |
-| `luajit tests/addon_sim.lua` | Loads the whole addon under a mocked client and runs the engine checks, including playing every race's campaign from level 1 to the end. `FACTION=Horde` for the Horde races. |
-
----
-
 ## Credits
 
 - Quest, NPC, object and item data: **QuestieDB** and the many contributors to the Questie database.
